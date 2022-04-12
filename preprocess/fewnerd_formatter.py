@@ -160,7 +160,7 @@ def read_examples_from_file(data_dir: str, mode: str) -> list:
         for line in tqdm(f.readlines(), desc=f'reading {mode}'):
             line = line.strip()
             if line.startswith("-DOCSTART-") or not line.strip():
-                if words:
+                if len(words) > 0:
                     assert len(words) == len(labels)
                     examples.append(InputExample(guid="{}-{}".format(mode, guid_index),
                                                  words=words, labels=labels, proc_words=proc_words))
@@ -171,9 +171,11 @@ def read_examples_from_file(data_dir: str, mode: str) -> list:
                     proc_words = []
             else:
                 splits = line.split("\t")
-                if splits[0].strip():
-                    words.append(splits[0])
-                    proc_words.append(Config.tokenizer.tokenize(splits[0]))
+                cur_word = splits[0].strip()
+                cur_proc = Config.tokenizer.tokenize(cur_word) if len(cur_word) > 0 else []
+                if len(cur_word) > 0 and len(cur_proc) > 0:
+                    words.append(cur_word)
+                    proc_words.append(cur_proc)
                     if len(splits) > 1:
                         cur_label = splits[-1].replace("\n", "")
                     else:
