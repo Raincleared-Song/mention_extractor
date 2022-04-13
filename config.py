@@ -17,7 +17,7 @@ class Config:
         'mention': 'data/labels_men.json',
         'mention_bio': 'data/labels_men_bio.json',
     }
-    label_type = 'mention'
+    label_type = 'mention_bio'
     overwrite_cache = False
 
     __fin__ = open(label_map[label_type], encoding='utf-8')
@@ -37,8 +37,8 @@ class Config:
 
     # 使用的方法/输出目录名
     output_path = 'checkpoint'
-    model_name = 'BERT-BiLSTM-Crf'
-    model_path = 'fewnerd-mention-bert_crf'
+    model_name = 'BERT-Crf'
+    model_path = 'fewnerd-mention_bio-bert_crf'
     assert model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']
 
     # bert 路径
@@ -51,7 +51,7 @@ class Config:
     max_seq_length = 128
 
     # 训练设备
-    main_device = 'cuda:6'
+    main_device = 'cuda:5'
     # 使用 gpu 数量
     n_gpu = 1
 
