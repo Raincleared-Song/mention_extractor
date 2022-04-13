@@ -16,6 +16,7 @@ class BertCrf(nn.Module):
                                     if Config.model_name == 'BERT-BiLSTM-Crf' else 768,
                                     out_features=Config.label_num, bias=True)
         self.pad_label_id = -100
+        self.pad_logit_id = float('-inf')
         self.crf = CRF(tagset_size=Config.label_num, device=Config.main_device)
 
         if Config.model_name == 'BERT-BiLSTM-Crf':
@@ -40,7 +41,7 @@ class BertCrf(nn.Module):
             prediction = self.rnn(prediction, lengths)
         prediction = self.hidden2tag(prediction)  # [B, L, N]
 
-        pad_masks = (labels != self.pad_label_id)
+        pad_masks = (labels != self.get_pad_id(labels))
         loss_masks = ((attention_mask == 1) & pad_masks)
 
         crf_labels, crf_masks = self.to_crf_pad(labels, loss_masks)
@@ -51,9 +52,13 @@ class BertCrf(nn.Module):
         crf_logits, crf_masks = self.to_crf_pad(prediction, masks)
         crf_masks = crf_masks.sum(axis=2) == crf_masks.shape[2]
         best_path = self.crf(crf_logits, crf_masks)
-        # temp_labels = (torch.ones(loss_masks.shape) * self.pad_label_id).to(torch.long)
         temp_labels = (torch.ones(loss_masks.shape) * self.pad_label_id).to(torch.long)
-        prediction = self.unpad_crf(best_path, crf_masks, temp_labels, masks)
+        try:
+            prediction = self.unpad_crf(best_path, crf_masks, temp_labels, masks)
+        except RuntimeError as err:
+            from IPython import embed
+            embed()
+            raise err
 
         res_labels = self.normalize(prediction, flags, lengths)
         true_labels = self.normalize(labels, flags, lengths)
@@ -68,6 +73,7 @@ class BertCrf(nn.Module):
         return loss.unsqueeze(0)
 
     def normalize(self, logits, flags, lengths):
+        assert logits.dtype not in [torch.float16, torch.float32, torch.float64]
         results = []
         logits = logits.tolist()
         lengths = lengths.tolist()
@@ -84,8 +90,9 @@ class BertCrf(nn.Module):
 
     def to_crf_pad(self, org_array, org_mask):
         crf_array = [aa[bb] for aa, bb in zip(org_array, org_mask)]
-        crf_array = pad_sequence(crf_array, batch_first=True, padding_value=self.pad_label_id)
-        crf_pad = (crf_array != self.pad_label_id)
+        pad_id = self.get_pad_id(org_array)
+        crf_array = pad_sequence(crf_array, batch_first=True, padding_value=pad_id)
+        crf_pad = (crf_array != pad_id)
         crf_array[~crf_pad] = 0
         return crf_array, crf_pad
 
@@ -94,3 +101,17 @@ class BertCrf(nn.Module):
         out_array = org_array.clone().detach().to(returned_array.device)
         out_array[org_mask] = returned_array[returned_mask]
         return out_array
+
+    def get_pad_id(self, org_array: torch.Tensor):
+        minimum = torch.min(org_array)
+        if org_array.dtype in [torch.float16, torch.float32, torch.float64]:
+            res = self.pad_logit_id
+        else:
+            res = self.pad_label_id
+        try:
+            assert res < minimum or minimum == self.pad_label_id
+        except AssertionError as err:
+            from IPython import embed
+            embed()
+            raise err
+        return res

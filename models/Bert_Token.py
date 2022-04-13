@@ -42,6 +42,7 @@ class BertTokenClassification(nn.Module):
         return loss.unsqueeze(0)
 
     def normalize(self, logits, flags, lengths):
+        assert logits.dtype not in [torch.float16, torch.float32, torch.float64]
         results = []
         logits = logits.tolist()
         lengths = lengths.tolist()
