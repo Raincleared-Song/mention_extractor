@@ -1,0 +1,65 @@
+1. fewnerd-mention-bert_token
+setting: token classification + no bio
+max_epoch: 3
+max_epoch_f1: 0.8409215578714693
+max_epoch_pre: 0.8291134169302454
+max_epoch_rec: 0.8530708985983403
+max_step: 24000
+max_step_f1: 0.8410309215904295
+max_step_pre: 0.8242475809801089
+max_step_rec: 0.8585119538332938
+
+2. fewnerd-mention_bio-bert_token
+setting: token classification + bio
+max_epoch: 3
+max_epoch_f1: 0.841659097789718
+max_epoch_pre: 0.8245995649592991
+max_epoch_rec: 0.8594394064301609
+max_step: 12000
+max_step_f1: 0.8411341909713126
+max_step_pre: 0.8276838976117097
+max_step_rec: 0.8550288540806152
+
+3. fewnerd-mention-bert_crf
+setting: Bert-Crf + no bio
+max_epoch: 1
+max_epoch_f1: 0.8438748738646127
+max_epoch_pre: 0.8266903914589113
+max_epoch_rec: 0.8617889530088909
+max_step: 14000
+max_step_f1: 0.8445797019390444
+max_step_pre: 0.8289405787320231
+max_step_rec: 0.8608202802966075
+
+4. fewnerd-mention_bio-bert_crf
+setting: Bert-Crf + bio
+max_epoch: 0
+max_epoch_f1: 0.845103056434057
+max_epoch_pre: 0.826567611240132
+max_epoch_rec: 0.8644888705686594
+max_step: 8000
+max_step_f1: 0.8436425429826382
+max_step_pre: 0.8190799689439404
+max_step_rec: 0.8697238252265315
+
+5. fewnerd-mention-bert_bilstm_crf
+setting: Bert-BiLSTM-Crf + no bio
+max_epoch: 3
+max_epoch_f1: 0.841847467100078
+max_epoch_pre: 0.8303297584442557
+max_epoch_rec: 0.8536892003295851
+max_step: 16000
+max_step_f1: 0.8438946171955745
+max_step_pre: 0.8312739923222907
+max_step_rec: 0.8569043693320576
+
+6. fewnerd-mention_bio-bert_bilstm_crf
+setting: Bert-BiLSTM-Crf + bio
+max_epoch: 3
+max_epoch_f1: 0.8444070988183798
+max_epoch_pre: 0.8298147521736615
+max_epoch_rec: 0.8595218466609935
+max_step: 18000
+max_step_f1: 0.8456244053521639
+max_step_pre: 0.8308405266715401
+max_step_rec: 0.8609439406428564

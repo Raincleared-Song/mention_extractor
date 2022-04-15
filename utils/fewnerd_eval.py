@@ -97,7 +97,7 @@ class FewNERDMetrics:
             correct_cnt += c_cnt
         precision = correct_cnt / (pred_cnt + 1e-8)
         recall = correct_cnt / (label_cnt + 1e-8)
-        f1 = 2 * precision * recall / (precision + recall)
+        f1 = 2 * precision * recall / (precision + recall + 1e-8)
         return {
             "precision": precision,
             "recall": recall,
