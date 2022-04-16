@@ -17,7 +17,7 @@ class Config:
         'mention': 'data/labels_men.json',
         'mention_bio': 'data/labels_men_bio.json',
     }
-    label_type = 'type_bio'
+    label_type = 'type'
     overwrite_cache = False
 
     __fin__ = open(label_map[label_type], encoding='utf-8')
@@ -38,7 +38,7 @@ class Config:
     # 使用的方法/输出目录名
     output_path = 'checkpoint'
     model_name = 'Bert-Token-Classification'
-    model_path = 'fewnerd-type_bio-bert_token'
+    model_path = 'fewnerd-type-bert_token'
     assert model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']
 
     # bert 路径
@@ -66,6 +66,7 @@ class Config:
 
     max_step = -1
     num_epoch = 20
+    max_grad_norm = 1.0
     grad_accu_step = 1  # 梯度累加
     save_step = 2000  # 每 2000 步保存一次
     save_epoch = 1   # 每 1 轮保存一次

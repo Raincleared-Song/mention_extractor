@@ -83,7 +83,9 @@ def test_crf(datasets, model, mode: str, output_path: str = None, epoch=-1, step
 
     results.update(evaluator.get_metrics())
     results['eval_loss'] = eval_loss
-    if epoch == -1:
+    if mode == 'test':
+        file_name = f'{mode}-result.txt'
+    elif epoch == -1:
         file_name = f'{mode}-step-{step}.txt'
     else:
         file_name = f'{mode}-epoch-{epoch}.txt'

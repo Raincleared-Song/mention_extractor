@@ -74,6 +74,7 @@ def train(datasets, models):
 
             train_loss += loss.item()
             if (step + 1) % Config.grad_accu_step == 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), Config.max_grad_norm)
                 # 梯度累加
                 optimizer.step()
                 if Config.num_warmup_steps >= 0:

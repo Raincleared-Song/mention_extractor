@@ -46,7 +46,7 @@ def save_config(args):
     save_path = os.path.join(base_path, f'config_bak_{time_str}_{args.mode}.py')
     fout = open(save_path, 'w', encoding='utf-8')
     if args.checkpoint is not None:
-        fout.write(f'# checkpoint: {args.pretrain_bert}\n\n')
+        fout.write(f'# checkpoint: {args.checkpoint}\n\n')
     for f_name in config_list:
         if f_name.endswith('.py'):
             fout.write('# ------' + f_name + '------\n')

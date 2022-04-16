@@ -1,5 +1,5 @@
 1. fewnerd-mention-bert_token
-setting: token classification + no bio
+setting: Bert-Token-Classification + no bio
 max_epoch: 3
 max_epoch_f1: 0.8409215578714693
 max_epoch_pre: 0.8291134169302454
@@ -10,7 +10,7 @@ max_step_pre: 0.8242475809801089
 max_step_rec: 0.8585119538332938
 
 2. fewnerd-mention_bio-bert_token
-setting: token classification + bio
+setting: Bert-Token-Classification + bio
 max_epoch: 3
 max_epoch_f1: 0.841659097789718
 max_epoch_pre: 0.8245995649592991
@@ -63,3 +63,25 @@ max_step: 18000
 max_step_f1: 0.8456244053521639
 max_step_pre: 0.8308405266715401
 max_step_rec: 0.8609439406428564
+
+7. fewnerd-type-bert_token, epoch-2.pkl
+setting: Bert-Token-Classification + no bio (type)
+max_epoch: 2
+max_epoch_f1: 0.6496388693488454
+max_epoch_pre: 0.6285106301400172
+max_epoch_rec: 0.672237030961519
+max_step: 18000
+max_step_f1: 0.6457267068470219
+max_step_pre: 0.6231311975589964
+max_step_rec: 0.6700225548491553
+
+8. fewnerd-type_bio-bert_token, step-50000.pkl
+setting: Bert-Token-Classification + bio (type)
+max_epoch: 10
+max_epoch_f1: 0.6477055353078454
+max_epoch_pre: 0.636264736134062
+max_epoch_rec: 0.6595653065407711
+max_step: 50000
+max_step_f1: 0.6498458819866365
+max_step_pre: 0.6366837828797268
+max_step_rec: 0.6635636661880945
