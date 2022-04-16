@@ -118,6 +118,7 @@ def init_model(args):
     trained_epoch, global_step = -1, 0
     if 'cuda' in Config.main_device:
         model = model.to(Config.main_device)
+        torch.cuda.set_device(Config.main_device)
         os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3,4,5,6,7'
         os.system("export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7")
     # multi-gpu training

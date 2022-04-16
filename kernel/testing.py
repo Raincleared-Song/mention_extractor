@@ -81,6 +81,9 @@ def test_crf(datasets, model, mode: str, output_path: str = None, epoch=-1, step
     eval_loss = eval_loss / eval_step_b
     writer.close()
 
+    del tmp_eval_loss
+    torch.cuda.empty_cache()
+
     results.update(evaluator.get_metrics())
     results['eval_loss'] = eval_loss
     if mode == 'test':

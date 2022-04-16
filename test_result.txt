@@ -75,6 +75,11 @@ max_step_f1: 0.6457267068470219
 max_step_pre: 0.6231311975589964
 max_step_rec: 0.6700225548491553
 
+official baseline Bert-Token-Classification:
+f1 = 0.6713079977196261
+precision = 0.6557430368018908
+recall = 0.6876298355673814
+
 8. fewnerd-type_bio-bert_token, step-50000.pkl
 setting: Bert-Token-Classification + bio (type)
 max_epoch: 10
@@ -85,3 +90,18 @@ max_step: 50000
 max_step_f1: 0.6498458819866365
 max_step_pre: 0.6366837828797268
 max_step_rec: 0.6635636661880945
+
+9. fewnerd-type-bert_token-sche
+setting: Bert-Token-Classification + no bio (type) + warmup 0
+max_epoch: 9
+max_epoch_f1: 0.6633880000801606
+max_epoch_pre: 0.6497326203207279
+max_epoch_rec: 0.6776296903832936
+max_step: 36000
+max_step_f1: 0.6588024310051492
+max_step_pre: 0.640736434108403
+max_step_rec: 0.6779167521015629
+test result:
+micro_f1 = 0.6608278647147238
+precision = 0.6468013201841295
+recall = 0.6754762543600055

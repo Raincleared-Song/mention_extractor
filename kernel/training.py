@@ -34,7 +34,7 @@ def train(datasets, models):
     scheduler = None
     if Config.num_warmup_steps >= 0:
         scheduler = get_linear_schedule_with_warmup(
-            optimizer, num_warmup_steps=0, num_training_steps=total_t
+            optimizer, num_warmup_steps=Config.num_warmup_steps, num_training_steps=total_t
         )
     determine = torch.use_deterministic_algorithms if 'use_deterministic_algorithms' in dir(torch) \
         else torch.set_deterministic

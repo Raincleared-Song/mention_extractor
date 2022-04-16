@@ -38,7 +38,7 @@ class Config:
     # 使用的方法/输出目录名
     output_path = 'checkpoint'
     model_name = 'Bert-Token-Classification'
-    model_path = 'fewnerd-type-bert_token'
+    model_path = 'fewnerd-type-bert_token-sche-seg'
     assert model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']
 
     # bert 路径
@@ -59,13 +59,13 @@ class Config:
     optimizer = 'adamw'
     learning_rate = 5e-5
     adam_epsilon = 1e-8
-    weight_decay = 1e-8
+    weight_decay = 0.0
 
-    num_warmup_steps = -1
+    num_warmup_steps = 0
     lstm_hidden_size = 512
 
     max_step = -1
-    num_epoch = 20
+    num_epoch = 10
     max_grad_norm = 1.0
     grad_accu_step = 1  # 梯度累加
     save_step = 2000  # 每 2000 步保存一次
