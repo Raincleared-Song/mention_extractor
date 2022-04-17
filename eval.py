@@ -28,7 +28,8 @@ def find_max_f1(idx_file_list: list, valid_path: str, metric='f1'):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', '-t', help='model name', type=str)
-    parser.add_argument('--metric', '-m', help='metric to choose best model', choices=['f1', 'pre', 'rec'], type=str)
+    parser.add_argument('--metric', '-m', help='metric to choose best model', default='f1',
+                        choices=['f1', 'pre', 'rec'], type=str)
     args = parser.parse_args()
 
     valid_path = os.path.join('checkpoint', args.task, 'valid')

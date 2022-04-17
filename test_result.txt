@@ -64,16 +64,16 @@ max_step_f1: 0.8456244053521639
 max_step_pre: 0.8308405266715401
 max_step_rec: 0.8609439406428564
 
-7. fewnerd-type-bert_token, epoch-2.pkl
+7. fewnerd-type-bert_token, step-22000.pkl
 setting: Bert-Token-Classification + no bio (type)
-max_epoch: 2
-max_epoch_f1: 0.6496388693488454
-max_epoch_pre: 0.6285106301400172
-max_epoch_rec: 0.672237030961519
-max_step: 18000
-max_step_f1: 0.6457267068470219
-max_step_pre: 0.6231311975589964
-max_step_rec: 0.6700225548491553
+max_epoch: 16
+max_epoch_f1: 0.6497617701686487
+max_epoch_pre: 0.6399172863560982
+max_epoch_rec: 0.6599138814843839
+max_step: 22000
+max_step_f1: 0.6505699936223194
+max_step_pre: 0.6328370361752874
+max_step_rec: 0.6693254049619296
 
 official baseline Bert-Token-Classification:
 f1 = 0.6713079977196261
@@ -91,17 +91,62 @@ max_step_f1: 0.6498458819866365
 max_step_pre: 0.6366837828797268
 max_step_rec: 0.6635636661880945
 
-9. fewnerd-type-bert_token-sche
+9. fewnerd-type-bert_token-sche, step-76000.pkl
 setting: Bert-Token-Classification + no bio (type) + warmup 0
 max_epoch: 9
 max_epoch_f1: 0.6633880000801606
 max_epoch_pre: 0.6497326203207279
 max_epoch_rec: 0.6776296903832936
-max_step: 36000
-max_step_f1: 0.6588024310051492
-max_step_pre: 0.640736434108403
-max_step_rec: 0.6779167521015629
+max_step: 76000
+max_step_f1: 0.6644926879836016
+max_step_pre: 0.6525589578348879
+max_step_rec: 0.6768710272707245
 test result:
-micro_f1 = 0.6608278647147238
-precision = 0.6468013201841295
-recall = 0.6754762543600055
+micro_f1 = 0.6609164311462558
+precision = 0.6478634511878986
+recall = 0.6745062021423011
+
+10. fewnerd-type-bert_token-sche-seg, step-46000.pkl
+setting: Bert-Token-Classification + no bio (type) + warmup 0, no 'X'
+max_epoch: 9
+max_epoch_f1: 0.6635439025856761
+max_epoch_pre: 0.6494855482248175
+max_epoch_rec: 0.6782243182282801
+max_step: 46000
+max_step_f1: 0.6648782294470197
+max_step_pre: 0.6495276837924842
+max_step_rec: 0.6809719089602869
+test result:
+micro_f1 = 0.659312455021649
+precision = 0.6434359805509903
+recall = 0.6759922395821886s
+
+11. fewnerd-type_bio-bert_crf-sche, epoch-8.pkl
+setting: Bert-Crf + bio (type) + warmup 0
+max_epoch: 8
+max_epoch_f1: 0.6705733771152977
+max_epoch_pre: 0.6609899412407806
+max_epoch_rec: 0.6804387943406438
+max_step: 56000
+max_step_f1: 0.670497076614807
+max_step_pre: 0.6616754512057456
+max_step_rec: 0.6795571047773878
+test result:
+micro_f1 = 0.665168511476422
+precision = 0.655559452823505
+recall = 0.6750634661822589
+
+12. fewnerd-type-bert_crf-sche, epoch-8.pkl
+setting: Bert-Crf + no bio (type) + warmup 0
+max_epoch: 8
+max_epoch_f1: 0.669827664812484
+max_epoch_pre: 0.6620271163357575
+max_epoch_rec: 0.6778142300593238
+max_step: 82000
+max_step_f1: 0.6695050344033033
+max_step_pre: 0.6590132676569757
+max_step_rec: 0.6803362722984048
+test_result:
+micro_f1 = 0.6661606979168397
+precision = 0.6577150156401781
+recall = 0.6748261129800547

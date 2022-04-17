@@ -95,7 +95,7 @@ def init_dataset(mode: str):
         dataloader = DataLoader(
             dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=Config.reader_num,
             collate_fn=form.process, drop_last=(mode == 'train'),
-            worker_init_fn=seed_worker, generator=global_loader_generator,
+            worker_init_fn=seed_worker, generator=global_loader_generator, pin_memory=True,
         )
     else:
         raise NotImplementedError('Invalid Model Name!')

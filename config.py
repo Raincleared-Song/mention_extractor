@@ -37,14 +37,14 @@ class Config:
 
     # 使用的方法/输出目录名
     output_path = 'checkpoint'
-    model_name = 'Bert-Token-Classification'
-    model_path = 'fewnerd-type-bert_token-sche-seg'
+    model_name = 'BERT-Crf'
+    model_path = 'fewnerd-type-bert_crf-sche'
     assert model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']
 
     # bert 路径
     bert_path = 'bert-base-uncased'
     # Dataloader 线程数目
-    reader_num = 4
+    reader_num = 32
     # 全局切词器
     tokenizer = BertTokenizer.from_pretrained(bert_path, do_lower_case=True)
     # 句子最大长度

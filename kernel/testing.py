@@ -49,7 +49,7 @@ def test_crf(datasets, model, mode: str, output_path: str = None, epoch=-1, step
         del batch['guids'], batch['words'], batch['extra_labels']
         for key, value in batch.items():
             if isinstance(value, torch.Tensor):
-                batch[key] = value.to(Config.main_device)
+                batch[key] = value.to(Config.main_device, non_blocking=True)
         if Config.n_gpu > 1:
             batch['rank'] = torch.LongTensor(list(range(Config.n_gpu)))
 

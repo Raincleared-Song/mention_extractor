@@ -55,7 +55,7 @@ def train(datasets, models):
             # transfer data to gpu
             for key, value in batch.items():
                 if isinstance(value, torch.Tensor):
-                    batch[key] = value.to(Config.main_device)
+                    batch[key] = value.to(Config.main_device, non_blocking=True)
 
             if Config.model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']:
                 loss = model(**batch)
