@@ -37,8 +37,8 @@ class Config:
 
     # 使用的方法/输出目录名
     output_path = 'checkpoint'
-    model_name = 'BERT-Crf'
-    model_path = 'fewnerd-type-bert_crf-sche'
+    model_name = 'BERT-BiLSTM-Crf'
+    model_path = 'fewnerd-mention_bio-bert_bilstm_crf-sche'
     assert model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']
 
     # bert 路径

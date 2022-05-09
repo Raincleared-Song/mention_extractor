@@ -23,15 +23,21 @@ def init_all(seed=None):
     Config.cur_mode = args.mode
     datasets = init_data(args)
     models = init_model(args)
-    return args.mode, datasets, models
+    return args, datasets, models
 
 
 def init_args():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('--mode', '-m', help='train/test',
-                            type=str, choices=['train', 'test'], required=True)
+                            type=str, choices=['train', 'test', 'both'], required=True)
     arg_parser.add_argument('--checkpoint', '-c', help='path of the checkpoint file', default=None)
-    return arg_parser.parse_args()
+    args = arg_parser.parse_args()
+    if args.mode == 'both':
+        args.mode = 'train'
+        args.do_test = True
+    else:
+        args.do_test = False
+    return args
 
 
 def save_config(args):
@@ -117,10 +123,10 @@ def init_model(args):
     model = name_to_model[Config.model_name]()
     trained_epoch, global_step = -1, 0
     if 'cuda' in Config.main_device:
-        model = model.to(Config.main_device)
         torch.cuda.set_device(Config.main_device)
+        torch.cuda.empty_cache()
+        model = model.to(Config.main_device)
         os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3,4,5,6,7'
-        os.system("export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7")
     # multi-gpu training
     if Config.n_gpu > 1:
         model = torch.nn.DataParallel(model, device_ids=list(range(Config.n_gpu)))
@@ -134,7 +140,7 @@ def init_model(args):
         if args.mode == 'test':
             raise RuntimeError('Test mode need a trained model!')
     else:
-        params = torch.load(args.checkpoint)
+        params = torch.load(args.checkpoint, map_location={f'cuda:{k}': Config.main_device for k in range(8)})
         if hasattr(model, 'module'):
             model.module.load_state_dict(params['model'])
         else:

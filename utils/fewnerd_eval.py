@@ -99,9 +99,9 @@ class FewNERDMetrics:
         recall = correct_cnt / (label_cnt + 1e-8)
         f1 = 2 * precision * recall / (precision + recall + 1e-8)
         return {
-            "precision": precision,
-            "recall": recall,
-            "micro_f1": f1,
+            "precision": round(precision * 100, 2),
+            "recall": round(recall * 100, 2),
+            "micro_f1": round(f1 * 100, 2),
         }
 
     def expand(self, batch_pred, batch_true):

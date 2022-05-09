@@ -1,4 +1,4 @@
-1. fewnerd-mention-bert_token
+1. fewnerd-mention-bert_token, step-24000.pkl
 setting: Bert-Token-Classification + no bio
 max_epoch: 3
 max_epoch_f1: 0.8409215578714693
@@ -8,8 +8,12 @@ max_step: 24000
 max_step_f1: 0.8410309215904295
 max_step_pre: 0.8242475809801089
 max_step_rec: 0.8585119538332938
+test result:
+micro_f1 = 0.8387922576807684
+precision = 0.8221458800098759
+recall = 0.8561266707451491
 
-2. fewnerd-mention_bio-bert_token
+2. fewnerd-mention_bio-bert_token, epoch-3.pkl
 setting: Bert-Token-Classification + bio
 max_epoch: 3
 max_epoch_f1: 0.841659097789718
@@ -19,8 +23,27 @@ max_step: 12000
 max_step_f1: 0.8411341909713126
 max_step_pre: 0.8276838976117097
 max_step_rec: 0.8550288540806152
+test result:
+micro_f1 = 0.83982586842558
+precision = 0.8222215599200448
+recall = 0.8582005205362085
 
-3. fewnerd-mention-bert_crf
+2.1 fewnerd-mention_bio-bert_token-sche, step-20000.pkl
+setting: Bert-Token-Classification + bio + warmup 0
+max_epoch: 2
+max_epoch_f1: 84.36
+max_epoch_pre: 83.16
+max_epoch_rec: 85.6
+max_step: 20000
+max_step_f1: 84.37
+max_step_pre: 83.16
+max_step_rec: 85.61
+test result:
+micro_f1 = 84.44
+precision = 83.27
+recall = 85.63
+
+3. fewnerd-mention-bert_crf, step-14000.pkl
 setting: Bert-Crf + no bio
 max_epoch: 1
 max_epoch_f1: 0.8438748738646127
@@ -30,8 +53,12 @@ max_step: 14000
 max_step_f1: 0.8445797019390444
 max_step_pre: 0.8289405787320231
 max_step_rec: 0.8608202802966075
+test result:
+micro_f1 = 0.842780971972744
+precision = 0.8265112847913683
+recall = 0.8597040616347267
 
-4. fewnerd-mention_bio-bert_crf
+4. fewnerd-mention_bio-bert_crf, epoch-0.pkl
 setting: Bert-Crf + bio
 max_epoch: 0
 max_epoch_f1: 0.845103056434057
@@ -41,8 +68,27 @@ max_step: 8000
 max_step_f1: 0.8436425429826382
 max_step_pre: 0.8190799689439404
 max_step_rec: 0.8697238252265315
+test result:
+micro_f1 = 0.8441831752458313
+precision = 0.8262345862869258
+recall = 0.8629288980598241
 
-5. fewnerd-mention-bert_bilstm_crf
+4.1 fewnerd-mention_bio-bert_crf-sche, epoch-1.pkl
+setting: Bert-Crf + bio + warmup 0
+max_epoch: 1
+max_epoch_f1: 84.74
+max_epoch_pre: 82.92
+max_epoch_rec: 86.65
+max_step: 14000
+max_step_f1: 84.69
+max_step_pre: 83.23
+max_step_rec: 86.19
+test result:
+micro_f1 = 84.66
+precision = 82.87
+recall = 86.54
+
+5. fewnerd-mention-bert_bilstm_crf, step-16000.pkl
 setting: Bert-BiLSTM-Crf + no bio
 max_epoch: 3
 max_epoch_f1: 0.841847467100078
@@ -52,8 +98,12 @@ max_step: 16000
 max_step_f1: 0.8438946171955745
 max_step_pre: 0.8312739923222907
 max_step_rec: 0.8569043693320576
+test result:
+micro_f1 = 0.842041356861365
+precision = 0.828732665910126
+recall = 0.8557844855296244
 
-6. fewnerd-mention_bio-bert_bilstm_crf
+6. fewnerd-mention_bio-bert_bilstm_crf, step-18000.pkl
 setting: Bert-BiLSTM-Crf + bio
 max_epoch: 3
 max_epoch_f1: 0.8444070988183798
@@ -63,6 +113,25 @@ max_step: 18000
 max_step_f1: 0.8456244053521639
 max_step_pre: 0.8308405266715401
 max_step_rec: 0.8609439406428564
+test result:
+micro_f1 = 0.8438343280259472
+precision = 0.828993046871009
+recall = 0.8592167069338277
+
+6.1 fewnerd-mention_bio-bert_bilstm_crf-sche, epoch-2.pkl
+setting: Bert-BiLSTM-Crf + bio + warmup 0
+max_epoch: 2
+max_epoch_f1: 84.71
+max_epoch_pre: 83.34
+max_epoch_rec: 86.12
+max_step: 20000
+max_step_f1: 84.71
+max_step_pre: 83.73
+max_step_rec: 85.71
+test result:
+micro_f1 = 84.62
+precision = 83.23
+recall = 86.05
 
 7. fewnerd-type-bert_token, step-22000.pkl
 setting: Bert-Token-Classification + no bio (type)
@@ -150,3 +219,18 @@ test_result:
 micro_f1 = 0.6661606979168397
 precision = 0.6577150156401781
 recall = 0.6748261129800547
+
+13. fewnerd-type-bert_token-std, epoch-4.pkl
+setting: Bert-Token-Classification + no bio (type) + warmup 0, no 'X', [CLS], [SEP]
+max_epoch: 4
+max_epoch_f1: 0.6638155472640577
+max_epoch_pre: 0.6488428554644929
+max_epoch_rec: 0.6794955915520444
+max_step: 82000
+max_step_f1: 0.6637507223150305
+max_step_pre: 0.6497878692644858
+max_step_rec: 0.6783268402705191
+test result:
+micro_f1 = 0.6602645119443833
+precision = 0.6450828468194654
+recall = 0.6761779942621746

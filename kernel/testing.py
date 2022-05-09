@@ -4,16 +4,6 @@ import jsonlines
 from tqdm import tqdm
 from config import Config
 from utils import FewNERDMetrics, ParallelCollector
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
-
-
-def calc_metrics(pred, labels, class_num):
-    positive_labels = list(range(1, class_num))
-    precision = precision_score(labels, pred, labels=positive_labels, average='micro')
-    recall = recall_score(labels, pred, labels=positive_labels, average='micro')
-    f1 = f1_score(labels, pred, labels=positive_labels, average='micro')
-    accuracy = accuracy_score(labels, pred)
-    return precision, recall, f1, accuracy
 
 
 def test(datasets, model, mode: str, output_path: str = None, epoch=-1, step=-1):
