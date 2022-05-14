@@ -5,7 +5,8 @@ import random
 import jsonlines
 import numpy as np
 from tqdm import tqdm
-from preprocess.fewnerd_formatter import read_examples_from_file
+import sys
+sys.path.append('./')
 
 
 def load_json(path: str):
@@ -42,7 +43,7 @@ def gen_labels_json():
 def gen_fewnerd_temp_ner(part: str):
     # conll2003/train.csv: 27586 23222
     # [(1, 17850), (2, 8333), (3, 989), (4, 292), (5, 78), (6, 24), (7, 16), (10, 3), (8, 1)]
-    from config import Config
+    from configs import ConfigSupervised as Config
     assert Config.label_type == 'type'
     """
     fin = open('../templateNER/data/conll2003/train.csv', encoding='utf-8')
@@ -66,12 +67,14 @@ def gen_fewnerd_temp_ner(part: str):
     print(sum(x[0] * x[1] / total for x in token_len))
     exit()
     """
+    from preprocess.fewnerd_formatter import read_examples_from_file
+
     poisson_lambda = 2
     random.seed(100)
     np.random.seed(200)
     os.makedirs(f'data/{part}_template_mention', exist_ok=True)
     for p in ['train', 'dev', 'test']:
-        examples = read_examples_from_file(f'data/{part}/{p}.txt', '')
+        examples = read_examples_from_file(f'data/{part}/{p}.txt', '', Config)
         fout = open(f'data/{part}_template_mention/{p}.csv', 'w', newline='', encoding='utf-8')
         writer = csv.writer(fout)
         total_len, total_cnt, max_len, min_len = 0, 0, 0, 10000
@@ -152,7 +155,44 @@ def gen_fewnerd_entlm_ner(part: str):
     save_json(label_frac, f'data/{part}/label_frac.json')
 
 
+def convert_to_standard_bio(part: str):
+    import torch
+    for p in ['train', 'dev', 'test']:
+        cache_path = f'data/{part}/{p}_type_bio_cache.pth'
+        assert os.path.exists(cache_path)
+        data = torch.load(cache_path)
+        fout = open(f'../BARTNER/data/fewnerd/supervised/{p}.txt', 'w', encoding='utf-8')
+        for example in tqdm(data, desc=p):
+            assert len(example.words) == len(example.labels) == len(example.proc_words)
+            for word, label in zip(example.words, example.labels):
+                fout.write(f'{word}\t{label}\n')
+            fout.write('\n')
+        fout.close()
+
+
+def convert_fewshot_to_standard_type(part: str):
+    file_path = f'data/episode-data/{part}'
+    file_list = [f for f in os.listdir(file_path) if f.endswith('.jsonl')]
+    for f in tqdm(file_list, desc=part):
+        reader = jsonlines.open(f'{file_path}/{f}')
+        fout = open(f'{file_path}/{f[:-6]}.txt', 'w')
+        for item in reader:
+            sents = item['support']['word'] + item['query']['word']
+            labs = item['support']['label'] + item['query']['label']
+            assert len(sents) == len(labs)
+            for sent, lab in zip(sents, labs):
+                assert len(sent) == len(lab)
+                for s, l in zip(sent, lab):
+                    fout.write(f'{s}\t{l}\n')
+                fout.write('\n')
+        fout.close()
+        reader.close()
+
+
 if __name__ == '__main__':
     # gen_fewnerd_temp_ner('supervised')
-    gen_fewnerd_entlm_ner('supervised')
+    # gen_fewnerd_entlm_ner('supervised')
     # gen_labels_json()
+    # convert_to_standard_bio('supervised')
+    convert_fewshot_to_standard_type('inter')
+    convert_fewshot_to_standard_type('intra')

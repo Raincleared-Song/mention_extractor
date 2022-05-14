@@ -4,7 +4,7 @@ import torch
 import random
 import argparse
 import numpy as np
-from config import Config
+from configs import task_to_config
 from models import name_to_model
 from torch.optim import Adam, AdamW
 from torch.utils.data import DataLoader
@@ -19,15 +19,16 @@ name_to_optimizer = {
 def init_all(seed=None):
     args = init_args()
     save_config(args)
-    init_seed(seed)
-    Config.cur_mode = args.mode
+    init_seed(args, seed)
     datasets = init_data(args)
     models = init_model(args)
-    return args, datasets, models
+    return args, datasets, models, task_to_config[args.task]
 
 
 def init_args():
     arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument('--task', '-t', help='supervised',
+                            type=str, choices=['supervised'], required=True)
     arg_parser.add_argument('--mode', '-m', help='train/test',
                             type=str, choices=['train', 'test', 'both'], required=True)
     arg_parser.add_argument('--checkpoint', '-c', help='path of the checkpoint file', default=None)
@@ -41,11 +42,8 @@ def init_args():
 
 
 def save_config(args):
-    if os.path.exists('config'):
-        config_list = [os.path.join('config', f) for f in os.listdir('config')]
-    else:
-        config_list = ['config.py']
-    cur_config = Config
+    config_list = [os.path.join('configs', f) for f in os.listdir('configs')]
+    cur_config = task_to_config[args.task]
     time_str = '-'.join(time.asctime(time.localtime(time.time())).split(' '))
     base_path = os.path.join(cur_config.output_path, cur_config.model_path)
     os.makedirs(base_path, exist_ok=True)
@@ -72,10 +70,10 @@ def seed_worker(_):
     random.seed(worker_seed)
 
 
-def init_seed(seed):
+def init_seed(args, seed):
     global global_loader_generator
     if seed is None:
-        seed = Config.seed
+        seed = task_to_config[args.task].seed
     random.seed(seed)
     np.random.seed(seed)
     torch.random.manual_seed(seed)
@@ -88,18 +86,20 @@ def init_seed(seed):
     determine = torch.use_deterministic_algorithms if 'use_deterministic_algorithms' in dir(torch) \
         else torch.set_deterministic
     determine(True)
+    os.environ['TOKENIZERS_PARALLELISM'] = 'true'
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':16:8'
 
 
-def init_dataset(mode: str):
-    if Config.model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']:
-        form = FewNERDBertCrfFormatter()
-        batch_size = Config.per_gpu_batch_size[mode] * max(1, Config.n_gpu)
+def init_dataset(task: str, mode: str):
+    config = task_to_config[task]
+    if config.model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']:
+        form = FewNERDBertCrfFormatter(config)
+        batch_size = config.per_gpu_batch_size[mode] * max(1, config.n_gpu)
         shuffle = (mode != 'test')
 
         dataset = form.read(mode)
         dataloader = DataLoader(
-            dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=Config.reader_num,
+            dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=config.reader_num,
             collate_fn=form.process, drop_last=(mode == 'train'),
             worker_init_fn=seed_worker, generator=global_loader_generator, pin_memory=True,
         )
@@ -112,42 +112,43 @@ def init_dataset(mode: str):
 def init_data(args):
     datasets = {'train': None, 'valid': None, 'test': None}
     if args.mode == 'train':
-        datasets['train'] = init_dataset('train')
-        datasets['valid'] = init_dataset('valid')
+        datasets['train'] = init_dataset(args.task, 'train')
+        datasets['valid'] = init_dataset(args.task, 'valid')
     else:
-        datasets['test'] = init_dataset('test')
+        datasets['test'] = init_dataset(args.task, 'test')
     return datasets
 
 
 def init_model(args):
-    model = name_to_model[Config.model_name]()
+    config = task_to_config[args.task]
+    model = name_to_model[config.model_name](config)
     trained_epoch, global_step = -1, 0
-    if 'cuda' in Config.main_device:
-        torch.cuda.set_device(Config.main_device)
+    if 'cuda' in config.main_device:
+        torch.cuda.set_device(config.main_device)
         torch.cuda.empty_cache()
-        model = model.to(Config.main_device)
+        model = model.to(config.main_device)
         os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3,4,5,6,7'
     # multi-gpu training
-    if Config.n_gpu > 1:
-        model = torch.nn.DataParallel(model, device_ids=list(range(Config.n_gpu)))
+    if config.n_gpu > 1:
+        model = torch.nn.DataParallel(model, device_ids=list(range(config.n_gpu)))
         print('Parallel Training!')
 
-    optimizer = name_to_optimizer[Config.optimizer](
-        model.parameters(), lr=Config.learning_rate, eps=Config.adam_epsilon, weight_decay=Config.weight_decay
+    optimizer = name_to_optimizer[config.optimizer](
+        model.parameters(), lr=config.learning_rate, eps=config.adam_epsilon, weight_decay=config.weight_decay
     )
 
     if args.checkpoint is None:
         if args.mode == 'test':
             raise RuntimeError('Test mode need a trained model!')
     else:
-        params = torch.load(args.checkpoint, map_location={f'cuda:{k}': Config.main_device for k in range(8)})
+        params = torch.load(args.checkpoint, map_location={f'cuda:{k}': config.main_device for k in range(8)})
         if hasattr(model, 'module'):
             model.module.load_state_dict(params['model'])
         else:
             model.load_state_dict(params['model'])
         if args.mode == 'train':
             trained_epoch = params['trained_epoch']
-            if Config.optimizer == params['optimizer_name']:
+            if config.optimizer == params['optimizer_name']:
                 optimizer.load_state_dict(params['optimizer'])
             if 'global_step' in params:
                 global_step = params['global_step']

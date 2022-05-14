@@ -1,15 +1,16 @@
 import torch
 import torch.nn as nn
 from torch import autograd
-from config import Config
+from configs import ConfigBase
 
 
 class DynamicRNN(nn.Module):
-    def __init__(self, input_size):
+    def __init__(self, input_size, config: ConfigBase):
         super(DynamicRNN, self).__init__()
+        self.config = config
         self.embedding_size = input_size
         self.num_layers = 1
-        self.hidden_size = Config.lstm_hidden_size
+        self.hidden_size = config.lstm_hidden_size
         self.rnn = nn.LSTM(input_size=self.embedding_size,
                            hidden_size=self.hidden_size // 2,
                            num_layers=self.num_layers,
@@ -36,13 +37,14 @@ class DynamicRNN(nn.Module):
 
 
 class CRF(nn.Module):
-    def __init__(self, tagset_size, device):  # average_batch=False,
+    def __init__(self, tagset_size, config: ConfigBase):  # average_batch=False,
         super(CRF, self).__init__()
         print("build CRF...")
-        self.device = device
+        self.config = config
+        self.device = config.main_device
 
-        self.START_TAG = Config.label2id['[CLS]']
-        self.STOP_TAG = Config.label2id['[SEP]']
+        self.START_TAG = config.label2id['[CLS]']
+        self.STOP_TAG = config.label2id['[SEP]']
 
         self.tagset_size = tagset_size
 

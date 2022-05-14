@@ -1,8 +1,8 @@
-from config import Config
+from configs import ConfigBase
 
 
 class FewNERDMetrics:
-    def __init__(self, label_norm=True, ignore_index=-100):
+    def __init__(self, config: ConfigBase, label_norm=True, ignore_index=-100):
         """
         word_encoder: Sentence encoder
 
@@ -12,6 +12,7 @@ class FewNERDMetrics:
         self.ignore_index = ignore_index
         self.y_pred = []
         self.y_true = []
+        self.config = config
 
     @staticmethod
     def __get_class_span_dict__(label, is_string=False):
@@ -110,8 +111,7 @@ class FewNERDMetrics:
         self.y_pred += y_pred
         self.y_true += y_true
 
-    @staticmethod
-    def normalize(x):
+    def normalize(self, x):
         if not isinstance(x, list):
             x = x.cpu().numpy().tolist()
         assert len(x) > 0 and isinstance(x[0], list)
@@ -120,7 +120,7 @@ class FewNERDMetrics:
         for labs in x:
             cur = []
             for lab in labs:
-                if lab in Config.negative_labels:
+                if lab in self.config.negative_labels:
                     cur.append("O")
                 elif lab.startswith("B-") or lab.startswith("I-"):
                     cur.append(lab[2:])

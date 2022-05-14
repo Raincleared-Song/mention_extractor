@@ -1,7 +1,6 @@
 import json
 import torch
 import sys
-from config import Config
 
 
 def load_json(path: str):
@@ -19,12 +18,12 @@ def save_json(obj: object, path: str):
     file.close()
 
 
-def save_model(path: str, model, optimizer, trained_epoch: int, global_step: int):
+def save_model(path: str, model, optimizer_name, optimizer, trained_epoch: int, global_step: int):
     if hasattr(model, 'module'):
         model = model.module
     ret = {
         'model': model.state_dict(),
-        'optimizer_name': Config.optimizer,
+        'optimizer_name': optimizer_name,
         'optimizer': optimizer.state_dict(),
         'trained_epoch': trained_epoch,
         'global_step': global_step

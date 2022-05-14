@@ -1,4 +1,4 @@
-from config import Config
+from configs import ConfigBase as Config
 
 
 class ParallelCollector:

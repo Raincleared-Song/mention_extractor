@@ -1,14 +1,15 @@
 import torch
 import torch.nn as nn
-from config import Config
+from configs import ConfigBase
 from utils import ParallelCollector
 from transformers import BertForTokenClassification
 
 
 class BertTokenClassification(nn.Module):
-    def __init__(self):
+    def __init__(self, config: ConfigBase):
         super(BertTokenClassification, self).__init__()
-        self.bert = BertForTokenClassification.from_pretrained(Config.bert_path, num_labels=Config.label_num)
+        self.config = config
+        self.bert = BertForTokenClassification.from_pretrained(config.bert_path, num_labels=config.label_num)
         self.pad_label_id = -100
 
     def forward(self,
@@ -32,7 +33,7 @@ class BertTokenClassification(nn.Module):
         res_labels = self.normalize(prediction, flags, lengths)
         true_labels = self.normalize(labels, flags, lengths)
 
-        if Config.n_gpu > 1:
+        if self.config.n_gpu > 1:
             cur_rank = int(rank.item())
         else:
             cur_rank = 0
@@ -52,7 +53,7 @@ class BertTokenClassification(nn.Module):
             for i in range(length):
                 if flag[i] == 1:
                     assert logit[i] != self.pad_label_id
-                    result.append(Config.id2label[logit[i]])
+                    result.append(self.config.id2label[logit[i]])
             results.append(result)
             assert len(result) == sum(flag)
         return results

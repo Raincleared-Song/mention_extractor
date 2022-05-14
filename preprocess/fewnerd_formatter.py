@@ -22,23 +22,23 @@ import copy
 import torch
 from tqdm import tqdm
 from io import open
-from typing import List
-from config import Config
+from typing import List, Type
+from configs import ConfigBase
 from torch.utils.data import Dataset
 
 
-def label_convert(label: str, is_begin: bool) -> str:
-    if Config.label_type == 'type' or label in Config.negative_labels:
+def label_convert(label: str, is_begin: bool, config: Type[ConfigBase]) -> str:
+    if config.label_type == 'type' or label in config.negative_labels:
         res = label
-    elif Config.label_type == 'type_bio':
+    elif config.label_type == 'type_bio':
         res = ('B-' if is_begin else 'I-') + label
-    elif Config.label_type == 'mention':
+    elif config.label_type == 'mention':
         res = 'mention'
-    elif Config.label_type == 'mention_bio':
+    elif config.label_type == 'mention_bio':
         res = ('B-' if is_begin else 'I-') + 'mention'
     else:
         raise ValueError('invalid label type!')
-    assert res in Config.label2id
+    assert res in config.label2id
     return res
 
 
@@ -86,38 +86,38 @@ class InputExampleDataset(Dataset):
 
 
 class FewNERDBertCrfFormatter:
-    def __init__(self):
+    def __init__(self, config: Type[ConfigBase]):
         self.data = []
+        self.config = config
 
     def read(self, mode: str) -> InputExampleDataset:
         """
         read cache data, if not exist, do process
         """
-        data_dir = Config.data_path[mode]
+        data_dir = self.config.data_path[mode]
         prefix, _ = os.path.splitext(data_dir)
-        cache_path = f'{prefix}_{Config.label_type}_cache.pth'
-        if os.path.exists(cache_path) and not Config.overwrite_cache:
-            print('loading examples:', mode, Config.label_type, '......')
+        cache_path = f'{prefix}_{self.config.label_type}_cache.pth'
+        if os.path.exists(cache_path) and not self.config.overwrite_cache:
+            print('loading examples:', mode, self.config.label_type, '......')
             self.data = torch.load(cache_path)
         else:
-            print('processing examples:', mode, Config.label_type, '......')
-            self.data = read_examples_from_file(data_dir, mode)
+            print('processing examples:', mode, self.config.label_type, '......')
+            self.data = read_examples_from_file(data_dir, mode, self.config)
             torch.save(self.data, cache_path)
         return InputExampleDataset(copy.deepcopy(self.data))
 
-    @staticmethod
-    def process(batch: List[InputExample]):
+    def process(self, batch: List[InputExample]):
         max_word_len = max(sum(len(word) for word in example.proc_words) for example in batch)
-        padding_len = min(Config.max_seq_length, max_word_len + 2)
-        features = convert_examples_to_features(batch, padding_len, Config.tokenizer,
+        padding_len = min(self.config.max_seq_length, max_word_len + 2)
+        features = convert_examples_to_features(batch, self.config.label2id, padding_len, self.config.tokenizer,
                                                 cls_token_at_end=False,
-                                                cls_token=Config.tokenizer.cls_token,
+                                                cls_token=self.config.tokenizer.cls_token,
                                                 cls_token_segment_id=0,
-                                                sep_token=Config.tokenizer.sep_token,
+                                                sep_token=self.config.tokenizer.sep_token,
                                                 # roberta uses an extra separator b/w pairs of sentences
                                                 sep_token_extra=False,
                                                 pad_on_left=False,
-                                                pad_token_id=Config.tokenizer.pad_token_id,
+                                                pad_token_id=self.config.tokenizer.pad_token_id,
                                                 pad_token_segment_id=0,
                                                 pad_token_label_id=-100,
                                                 )
@@ -149,7 +149,7 @@ class FewNERDBertCrfFormatter:
         }
 
 
-def read_examples_from_file(data_dir: str, mode: str) -> list:
+def read_examples_from_file(data_dir: str, mode: str, config: Type[ConfigBase]) -> list:
     guid_index = 0
     examples = []
     with open(data_dir, encoding="utf-8") as f:
@@ -172,7 +172,7 @@ def read_examples_from_file(data_dir: str, mode: str) -> list:
             else:
                 splits = line.split("\t")
                 cur_word = splits[0].strip()
-                cur_proc = Config.tokenizer.tokenize(cur_word) if len(cur_word) > 0 else []
+                cur_proc = config.tokenizer.tokenize(cur_word) if len(cur_word) > 0 else []
                 if len(cur_word) > 0 and len(cur_proc) > 0:
                     words.append(cur_word)
                     proc_words.append(cur_proc)
@@ -181,7 +181,7 @@ def read_examples_from_file(data_dir: str, mode: str) -> list:
                     else:
                         # Examples could have no label for mode = "test"
                         cur_label = "O"
-                    cur_conv_label = label_convert(cur_label, cur_label != last_label)
+                    cur_conv_label = label_convert(cur_label, cur_label != last_label, config)
                     labels.append(cur_conv_label)
                     last_label = cur_label
         if words:
@@ -192,6 +192,7 @@ def read_examples_from_file(data_dir: str, mode: str) -> list:
 
 
 def convert_examples_to_features(examples: List[InputExample],
+                                 label2id: dict,
                                  max_seq_length: int,
                                  tokenizer,
                                  cls_token_at_end=False,
@@ -211,8 +212,6 @@ def convert_examples_to_features(examples: List[InputExample],
             - True (XLNet/GPT pattern): A + [SEP] + B + [SEP] + [CLS]
         `cls_token_segment_id` define the segment id associated to the CLS token (0 for BERT, 2 for XLNet)
     """
-    label_map = Config.label2id
-
     features = []
     for ex_index, example in enumerate(examples):
 
@@ -221,7 +220,7 @@ def convert_examples_to_features(examples: List[InputExample],
             assert len(word_tokens) > 0
             tokens.extend(word_tokens)
             # Use the real label id for the first token of the word, and 'X' for the remaining tokens
-            label_ids.extend([label_map[label]] + [Config.label2id['X']] * (len(word_tokens) - 1))
+            label_ids.extend([label2id[label]] + [label2id['X']] * (len(word_tokens) - 1))
             flags.extend([1] + [0] * (len(word_tokens) - 1))
         assert sum(flags) == len(example.words) == len(example.labels) == len(example.proc_words)
 
@@ -255,23 +254,23 @@ def convert_examples_to_features(examples: List[InputExample],
         # used as as the "sentence vector". Note that this only makes sense because
         # the entire model is fine-tuned.
         tokens += [sep_token]
-        label_ids += [Config.label2id['[SEP]']]
+        label_ids += [label2id['[SEP]']]
         flags += [0]
         if sep_token_extra:
             # roberta uses an extra separator b/w pairs of sentences
             tokens += [sep_token]
-            label_ids += [Config.label2id['[SEP]']]
+            label_ids += [label2id['[SEP]']]
             flags += [0]
         segment_ids = [sequence_a_segment_id] * len(tokens)
 
         if cls_token_at_end:
             tokens += [cls_token]
-            label_ids += [Config.label2id['[CLS]']]
+            label_ids += [label2id['[CLS]']]
             flags += [0]
             segment_ids += [cls_token_segment_id]
         else:
             tokens = [cls_token] + tokens
-            label_ids = [Config.label2id['[CLS]']] + label_ids
+            label_ids = [label2id['[CLS]']] + label_ids
             flags = [0] + flags
             segment_ids = [cls_token_segment_id] + segment_ids
 

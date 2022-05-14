@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from config import Config
+from configs import ConfigBase
 from transformers import BertModel
 from utils import ParallelCollector
 from .crf_base import CRF, DynamicRNN
@@ -8,19 +8,20 @@ from torch.nn.utils.rnn import pad_sequence
 
 
 class BertCrf(nn.Module):
-    def __init__(self):
+    def __init__(self, config: ConfigBase):
         super(BertCrf, self).__init__()
-        self.bert = BertModel.from_pretrained(Config.bert_path)
+        self.config = config
+        self.bert = BertModel.from_pretrained(config.bert_path)
         self.dropout = nn.Dropout(0.3)
-        self.hidden2tag = nn.Linear(in_features=Config.lstm_hidden_size
-                                    if Config.model_name == 'BERT-BiLSTM-Crf' else 768,
-                                    out_features=Config.label_num, bias=True)
+        self.hidden2tag = nn.Linear(in_features=config.lstm_hidden_size
+                                    if config.model_name == 'BERT-BiLSTM-Crf' else 768,
+                                    out_features=config.label_num, bias=True)
         self.pad_label_id = -100
         self.pad_logit_id = float('-inf')
-        self.crf = CRF(tagset_size=Config.label_num, device=Config.main_device)
+        self.crf = CRF(tagset_size=config.label_num, config=config)
 
-        if Config.model_name == 'BERT-BiLSTM-Crf':
-            self.rnn = DynamicRNN(768)
+        if config.model_name == 'BERT-BiLSTM-Crf':
+            self.rnn = DynamicRNN(768, config)
 
     def forward(self,
                 input_ids=None, attention_mask=None, token_type_ids=None,
@@ -37,7 +38,7 @@ class BertCrf(nn.Module):
         )[0]
 
         prediction = self.dropout(prediction)  # where to put dropout?
-        if Config.model_name == 'BERT-BiLSTM-Crf':
+        if self.config.model_name == 'BERT-BiLSTM-Crf':
             prediction = self.rnn(prediction, lengths)
         prediction = self.hidden2tag(prediction)  # [B, L, N]
 
@@ -63,7 +64,7 @@ class BertCrf(nn.Module):
         res_labels = self.normalize(prediction, flags, lengths)
         true_labels = self.normalize(labels, flags, lengths)
 
-        if Config.n_gpu > 1:
+        if self.config.n_gpu > 1:
             cur_rank = int(rank.item())
         else:
             cur_rank = 0
@@ -83,7 +84,7 @@ class BertCrf(nn.Module):
             for i in range(length):
                 if flag[i] == 1:
                     assert logit[i] != self.pad_label_id
-                    result.append(Config.id2label[logit[i]])
+                    result.append(self.config.id2label[logit[i]])
             results.append(result)
             assert len(result) == sum(flag)
         return results

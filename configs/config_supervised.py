@@ -1,14 +1,19 @@
 import json
-from transformers import BertTokenizer
+from .config_base import ConfigBase
 
 
-class Config:
+class ConfigSupervised(ConfigBase):
     """信息配置类"""
     # 数据信息
+    # data_path = {
+    #     'train': 'data/supervised/train.txt',
+    #     'valid': 'data/supervised/dev.txt',
+    #     'test': 'data/supervised/test.txt'
+    # }
     data_path = {
-        'train': 'data/supervised/train.txt',
-        'valid': 'data/supervised/dev.txt',
-        'test': 'data/supervised/test.txt'
+        'train': 'data/episode-data/intra/train_10_1.txt',
+        'valid': 'data/episode-data/intra/dev_10_1.txt',
+        'test': 'data/episode-data/intra/test_10_1.txt'
     }
 
     label_map = {
@@ -17,7 +22,7 @@ class Config:
         'mention': 'data/labels_men.json',
         'mention_bio': 'data/labels_men_bio.json',
     }
-    label_type = 'type'
+    label_type = 'mention_bio'
     overwrite_cache = False
 
     __fin__ = open(label_map[label_type], encoding='utf-8')
@@ -37,23 +42,15 @@ class Config:
 
     # 使用的方法/输出目录名
     output_path = 'checkpoint'
-    model_name = 'BERT-BiLSTM-Crf'
-    model_path = 'fewnerd-mention_bio-bert_bilstm_crf-sche'
+    model_name = 'BERT-Crf'
+    model_path = 'fewnerd-mention_bio-bert_crf-intra1001'
     assert model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']
 
-    # bert 路径
-    bert_path = 'bert-base-uncased'
-    # Dataloader 线程数目
-    reader_num = 32
-    # 全局切词器
-    tokenizer = BertTokenizer.from_pretrained(bert_path, do_lower_case=True)
     # 句子最大长度
     max_seq_length = 128
 
     # 训练设备
-    main_device = 'cuda:2'
-    # 使用 gpu 数量
-    n_gpu = 1
+    main_device = 'cuda:0'
 
     # Crf的默认训练参数
     optimizer = 'adamw'
@@ -70,6 +67,3 @@ class Config:
     grad_accu_step = 1  # 梯度累加
     save_step = 2000  # 每 2000 步保存一次
     save_epoch = 1   # 每 1 轮保存一次
-
-    # 随机种子
-    seed = 66
