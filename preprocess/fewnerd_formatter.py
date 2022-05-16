@@ -20,18 +20,19 @@ from __future__ import absolute_import, division, print_function
 import os
 import copy
 import torch
+import jsonlines
 from tqdm import tqdm
 from io import open
-from typing import List, Type
+from typing import List, Type, Tuple
 from configs import ConfigBase
 from torch.utils.data import Dataset
 
 
 def label_convert(label: str, is_begin: bool, config: Type[ConfigBase]) -> str:
     if config.label_type == 'type' or label in config.negative_labels:
-        res = label
+        res = label if len(label) <= 2 or label[2:] not in ('B-', 'I-') else label[2:]
     elif config.label_type == 'type_bio':
-        res = ('B-' if is_begin else 'I-') + label
+        res = ('B-' if is_begin else 'I-') + label if len(label) <= 2 or label[2:] not in ('B-', 'I-') else label
     elif config.label_type == 'mention':
         res = 'mention'
     elif config.label_type == 'mention_bio':
@@ -86,25 +87,45 @@ class InputExampleDataset(Dataset):
 
 
 class FewNERDBertCrfFormatter:
-    def __init__(self, config: Type[ConfigBase]):
+    def __init__(self, task: str, config: Type[ConfigBase]):
         self.data = []
+        self.task = task
         self.config = config
 
-    def read(self, mode: str) -> InputExampleDataset:
+    def read(self, mode: str = None):
         """
         read cache data, if not exist, do process
         """
-        data_dir = self.config.data_path[mode]
-        prefix, _ = os.path.splitext(data_dir)
-        cache_path = f'{prefix}_{self.config.label_type}_cache.pth'
-        if os.path.exists(cache_path) and not self.config.overwrite_cache:
-            print('loading examples:', mode, self.config.label_type, '......')
-            self.data = torch.load(cache_path)
+        if self.task == 'supervised':
+            assert mode is not None
+            data_dir = self.config.data_path[mode]
+            prefix, _ = os.path.splitext(data_dir)
+            cache_path = f'{prefix}_{self.config.label_type}_cache.pth'
+            if os.path.exists(cache_path) and not self.config.overwrite_cache:
+                print('loading examples:', mode, self.config.label_type, '......')
+                self.data = torch.load(cache_path)
+            else:
+                print('processing examples:', mode, self.config.label_type, '......')
+                self.data = read_examples_from_file(data_dir, mode, self.config)
+                torch.save(self.data, cache_path)
+            return InputExampleDataset(copy.deepcopy(self.data))
+        elif self.task == 'fewshot':
+            data_dir = self.config.data_path
+            prefix, _ = os.path.splitext(data_dir)
+            cache_path = f'{prefix}_{self.config.label_type}_cache.pth'
+            if os.path.exists(cache_path) and not self.config.overwrite_cache:
+                print('loading examples', prefix, self.config.label_type, '......')
+                self.data = torch.load(cache_path)
+            else:
+                print('processing examples', prefix, self.config.label_type, '......')
+                self.data = read_fewshot_examples_from_jsonl(data_dir, self.config)
+                torch.save(self.data, cache_path)
+            dataset_pairs = []
+            for support, query in self.data:
+                dataset_pairs.append((InputExampleDataset(support), InputExampleDataset(query)))
+            return dataset_pairs
         else:
-            print('processing examples:', mode, self.config.label_type, '......')
-            self.data = read_examples_from_file(data_dir, mode, self.config)
-            torch.save(self.data, cache_path)
-        return InputExampleDataset(copy.deepcopy(self.data))
+            raise NotImplementedError('Invalid Task Name!')
 
     def process(self, batch: List[InputExample]):
         max_word_len = max(sum(len(word) for word in example.proc_words) for example in batch)
@@ -149,7 +170,7 @@ class FewNERDBertCrfFormatter:
         }
 
 
-def read_examples_from_file(data_dir: str, mode: str, config: Type[ConfigBase]) -> list:
+def read_examples_from_file(data_dir: str, mode: str, config: Type[ConfigBase]) -> List[InputExample]:
     guid_index = 0
     examples = []
     with open(data_dir, encoding="utf-8") as f:
@@ -189,6 +210,44 @@ def read_examples_from_file(data_dir: str, mode: str, config: Type[ConfigBase]) 
             examples.append(InputExample(guid="%s-%d".format(mode, guid_index),
                                          words=words, labels=labels, proc_words=proc_words))
     return examples
+
+
+def read_fewshot_examples_from_jsonl(data_dir: str, config: Type[ConfigBase]) -> \
+        List[Tuple[List[InputExample], List[InputExample]]]:
+    prefix, _ = os.path.splitext(data_dir)
+    res_pair_batch = []
+    reader = jsonlines.open(data_dir)
+    item_id = 0
+    for item in tqdm(reader, desc=prefix):
+        support, query = item['support'], item['query']
+        assert len(support['word']) == len(support['label']) and len(query['word']) == len(query['label'])
+        support_batch, query_batch = [], []
+        for sid, (s_words, s_labels) in enumerate(zip(support['word'], support['label'])):
+            assert len(s_words) == len(s_labels)
+            cur_words, cur_labels, cur_proc_words = [], [], []
+            last_lab = ''
+            for word, lab in zip(s_words, s_labels):
+                cur_words.append(word)
+                cur_labels.append(label_convert(lab, lab != last_lab, config))
+                cur_proc_words.append(config.tokenizer.tokenize(word) if len(word) > 0 else [])
+                last_lab = lab
+            support_batch.append(InputExample(guid=f"{prefix}-support-{item_id}-{sid}",
+                                              words=cur_words, labels=cur_labels, proc_words=cur_proc_words))
+        for qid, (q_words, q_labels) in enumerate(zip(query['word'], query['label'])):
+            assert len(q_words) == len(q_labels)
+            cur_words, cur_labels, cur_proc_words = [], [], []
+            last_lab = ''
+            for word, lab in zip(q_words, q_labels):
+                cur_words.append(word)
+                cur_labels.append(label_convert(lab, lab != last_lab, config))
+                cur_proc_words.append(config.tokenizer.tokenize(word) if len(word) > 0 else [])
+                last_lab = lab
+            query_batch.append(InputExample(guid=f"{prefix}-query-{item_id}-{qid}",
+                                            words=cur_words, labels=cur_labels, proc_words=cur_proc_words))
+        res_pair_batch.append((support_batch, query_batch))
+        item_id += 1
+    reader.close()
+    return res_pair_batch
 
 
 def convert_examples_to_features(examples: List[InputExample],

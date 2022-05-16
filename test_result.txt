@@ -249,3 +249,51 @@ intra proto  precision: 0.5408, recall: 0.7236, f1:0.6190
 
 16. templateNER results
 supervised: {'precision': 73.06, 'recall': 85.99, 'f1': 79.0}
+
+17. BARTNER results
+supervised_mention:
+test  f=81.73, rec=82.05, pre=81.41, em=0.5687
+valid f=81.80, rec=82.09, pre=81.51, em=0.5709
+supervised_type:
+test  f=65.03, rec=65.33, pre=64.73, em=0.4201
+valid f=65.27, rec=65.50, pre=65.04, em=0.4245
+
+18. fewnerd-mention_bio-bert_crf-inter0505, step-60000
+max_epoch: 0
+max_epoch_f1: 54.46
+max_epoch_pre: 57.07
+max_epoch_rec: 52.08
+max_step: 60000
+max_step_f1: 55.6
+max_step_pre: 58.59
+max_step_rec: 52.89
+
+19. fewnerd-mention_bio-bert_crf-inter1001, step-12000
+max_epoch: 4
+max_epoch_f1: 52.97
+max_epoch_pre: 52.85
+max_epoch_rec: 53.1
+max_step: 12000
+max_step_f1: 55.46
+max_step_pre: 56.23
+max_step_rec: 54.7
+
+20. fewnerd-mention_bio-bert_crf-intra0505, step-110000
+max_epoch: 1
+max_epoch_f1: 31.67
+max_epoch_pre: 32.28
+max_epoch_rec: 31.08
+max_step: 110000
+max_step_f1: 33.3
+max_step_pre: 32.37
+max_step_rec: 34.29
+
+21. fewnerd-mention_bio-bert_crf-intra1001, epoch-0
+max_epoch: 0
+max_epoch_f1: 32.64
+max_epoch_pre: 32.89
+max_epoch_rec: 32.4
+max_step: 92000
+max_step_f1: 30.87
+max_step_pre: 29.45
+max_step_rec: 32.42

@@ -42,6 +42,7 @@ def train(datasets, models, config: ConfigBase):
     train_loss = 0.0
     best_step_f1, best_steps = 0.0, 0
     best_epoch_f1, best_epoch = 0.0, 0
+    best_results = {}
     model.zero_grad()
 
     for epoch in range(trained_epoch, int(config.num_epoch)):
@@ -82,16 +83,16 @@ def train(datasets, models, config: ConfigBase):
                 model.zero_grad()
                 global_step += 1
 
-                if global_step % config.save_step == 0:
+                if config.save_step > 0 and global_step % config.save_step == 0:
                     results = test(datasets, model, 'valid', config, valid_output_path, step=global_step)
                     if results['eval_f1'] > best_step_f1:
                         best_step_f1 = results['eval_f1']
                         best_steps = global_step
-
-                    # Save model checkpoint
-                    cp_output_dir = os.path.join(model_output_path, f'step-{global_step}.pkl')
-                    model_to_save = model.module if hasattr(model, "module") else model
-                    save_model(cp_output_dir, model_to_save, config.optimizer, optimizer, epoch, global_step)
+                    if config.save_model:
+                        # Save model checkpoint
+                        cp_output_dir = os.path.join(model_output_path, f'step-{global_step}.pkl')
+                        model_to_save = model.module if hasattr(model, "module") else model
+                        save_model(cp_output_dir, model_to_save, config.optimizer, optimizer, epoch, global_step)
 
             if 0 < config.max_step < global_step:
                 epoch_iterator.close()
@@ -104,9 +105,10 @@ def train(datasets, models, config: ConfigBase):
             if results['eval_f1'] > best_epoch_f1:
                 best_epoch_f1 = results['eval_f1']
                 best_epoch = epoch
-
-            # Save model checkpoint
-            cp_output_dir = os.path.join(model_output_path, f'epoch-{epoch}.pkl')
-            model_to_save = model.module if hasattr(model, "module") else model
-            save_model(cp_output_dir, model_to_save, config.optimizer, optimizer, epoch, global_step)
-    return global_step, train_loss / global_step, best_steps, best_epoch, best_step_f1, best_epoch_f1
+                best_results = results
+            if config.save_model:
+                # Save model checkpoint
+                cp_output_dir = os.path.join(model_output_path, f'epoch-{epoch}.pkl')
+                model_to_save = model.module if hasattr(model, "module") else model
+                save_model(cp_output_dir, model_to_save, config.optimizer, optimizer, epoch, global_step)
+    return global_step, train_loss / global_step, best_steps, best_epoch, best_step_f1, best_epoch_f1, best_results

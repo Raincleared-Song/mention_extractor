@@ -1,9 +1,10 @@
+from typing import Union
 from transformers import AutoTokenizer
 
 
 class ConfigBase:
     """基础信息配置类"""
-    data_path: dict
+    data_path: Union[dict, str]
 
     label_map: dict
     label_type: str
@@ -49,3 +50,4 @@ class ConfigBase:
     grad_accu_step: int
     save_step: int
     save_epoch: int
+    save_model: bool

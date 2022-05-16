@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--task', '-t', help='model name', type=str)
     parser.add_argument('--metric', '-m', help='metric to choose best model', default='f1',
                         choices=['f1', 'pre', 'rec'], type=str)
+    parser.add_argument('--remove', '-rm', action='store_true', help='remove not best models')
     args = parser.parse_args()
 
     valid_path = os.path.join('checkpoint', args.task, 'valid')
@@ -47,6 +48,13 @@ def main():
     print('max_step_f1:', max_step_f1)
     print('max_step_pre:', max_step_pre)
     print('max_step_rec:', max_step_rec)
+    if args.remove:
+        os.system(f'mv checkpoint/{args.task}/model/epoch-{max_epoch}.pkl checkpoint/{args.task}/')
+        os.system(f'mv checkpoint/{args.task}/model/epoch-{epoch_files[-1][0]}.pkl checkpoint/{args.task}/')
+        os.system(f'mv checkpoint/{args.task}/model/step-{max_step}.pkl checkpoint/{args.task}/')
+        os.system(f'mv checkpoint/{args.task}/model/step-{step_files[-1][0]}.pkl checkpoint/{args.task}/')
+        os.system(f'rm -rf checkpoint/{args.task}/model/*')
+        os.system(f'mv checkpoint/{args.task}/*.pkl checkpoint/{args.task}/model/')
 
 
 if __name__ == '__main__':

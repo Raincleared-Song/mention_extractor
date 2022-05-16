@@ -16,19 +16,17 @@ name_to_optimizer = {
 }
 
 
-def init_all(seed=None):
-    args = init_args()
-    save_config(args)
+def init_all(args, seed=None):
     init_seed(args, seed)
     datasets = init_data(args)
     models = init_model(args)
-    return args, datasets, models, task_to_config[args.task]
+    return datasets, models, task_to_config[args.task]
 
 
 def init_args():
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('--task', '-t', help='supervised',
-                            type=str, choices=['supervised'], required=True)
+    arg_parser.add_argument('--task', '-t', help='supervised/fewshot',
+                            type=str, choices=['supervised', 'fewshot'], required=True)
     arg_parser.add_argument('--mode', '-m', help='train/test',
                             type=str, choices=['train', 'test', 'both'], required=True)
     arg_parser.add_argument('--checkpoint', '-c', help='path of the checkpoint file', default=None)
@@ -38,6 +36,7 @@ def init_args():
         args.do_test = True
     else:
         args.do_test = False
+    save_config(args)
     return args
 
 
@@ -90,10 +89,11 @@ def init_seed(args, seed):
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':16:8'
 
 
-def init_dataset(task: str, mode: str):
+def init_dataset(task: str, mode: str = None):
     config = task_to_config[task]
-    if config.model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']:
-        form = FewNERDBertCrfFormatter(config)
+    if task == 'supervised':
+        assert mode is not None
+        form = FewNERDBertCrfFormatter(task, config)
         batch_size = config.per_gpu_batch_size[mode] * max(1, config.n_gpu)
         shuffle = (mode != 'test')
 
@@ -103,19 +103,44 @@ def init_dataset(task: str, mode: str):
             collate_fn=form.process, drop_last=(mode == 'train'),
             worker_init_fn=seed_worker, generator=global_loader_generator, pin_memory=True,
         )
+    elif task == 'fewshot':
+        form = FewNERDBertCrfFormatter(task, config)
+        datasets = form.read()
+        print('got few shot pairs:', len(datasets))
+        dataloader = fewshot_batch_to_loader(datasets, config, form)
     else:
-        raise NotImplementedError('Invalid Model Name!')
+        raise NotImplementedError('Invalid Task Name!')
 
     return dataloader
 
 
+def fewshot_batch_to_loader(datasets, config, form: FewNERDBertCrfFormatter):
+    for support, query in datasets:
+        support_loader = DataLoader(
+            dataset=support, batch_size=config.per_gpu_batch_size['train'], shuffle=True,
+            collate_fn=form.process, drop_last=False,
+            worker_init_fn=seed_worker, generator=global_loader_generator, pin_memory=True,
+        )
+        query_loader = DataLoader(
+            dataset=query, batch_size=config.per_gpu_batch_size['valid'], shuffle=False,
+            collate_fn=form.process, drop_last=False,
+            worker_init_fn=seed_worker, generator=global_loader_generator, pin_memory=True,
+        )
+        yield {'train': support_loader, 'valid': query_loader}
+
+
 def init_data(args):
-    datasets = {'train': None, 'valid': None, 'test': None}
-    if args.mode == 'train':
-        datasets['train'] = init_dataset(args.task, 'train')
-        datasets['valid'] = init_dataset(args.task, 'valid')
+    if args.task == 'supervised':
+        datasets = {'train': None, 'valid': None, 'test': None}
+        if args.mode == 'train':
+            datasets['train'] = init_dataset(args.task, 'train')
+            datasets['valid'] = init_dataset(args.task, 'valid')
+        else:
+            datasets['test'] = init_dataset(args.task, 'test')
+    elif args.task == 'fewshot':
+        datasets = init_dataset(args.task)
     else:
-        datasets['test'] = init_dataset(args.task, 'test')
+        raise NotImplementedError('Invalid Task Name!')
     return datasets
 
 

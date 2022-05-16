@@ -170,20 +170,28 @@ def convert_to_standard_bio(part: str):
         fout.close()
 
 
-def convert_fewshot_to_standard_type(part: str):
+def convert_fewshot_to_standard_type(part: str, standard_bio=False):
     file_path = f'data/episode-data/{part}'
     file_list = [f for f in os.listdir(file_path) if f.endswith('.jsonl')]
     for f in tqdm(file_list, desc=part):
         reader = jsonlines.open(f'{file_path}/{f}')
-        fout = open(f'{file_path}/{f[:-6]}.txt', 'w')
+        fout = open(f'{file_path}/{f[:-6]}{"-bio" if standard_bio else ""}.txt', 'w')
         for item in reader:
             sents = item['support']['word'] + item['query']['word']
             labs = item['support']['label'] + item['query']['label']
             assert len(sents) == len(labs)
             for sent, lab in zip(sents, labs):
                 assert len(sent) == len(lab)
-                for s, l in zip(sent, lab):
-                    fout.write(f'{s}\t{l}\n')
+                last_lab = ''
+                for s, la in zip(sent, lab):
+                    if not standard_bio or la == 'O':
+                        pre_la = la
+                    elif la == last_lab:
+                        pre_la = 'I-' + la
+                    else:
+                        pre_la = 'B-' + la
+                    last_lab = la
+                    fout.write(f'{s}\t{pre_la}\n')
                 fout.write('\n')
         fout.close()
         reader.close()
@@ -194,5 +202,7 @@ if __name__ == '__main__':
     # gen_fewnerd_entlm_ner('supervised')
     # gen_labels_json()
     # convert_to_standard_bio('supervised')
-    convert_fewshot_to_standard_type('inter')
-    convert_fewshot_to_standard_type('intra')
+    # convert_fewshot_to_standard_type('inter')
+    # convert_fewshot_to_standard_type('intra')
+    convert_fewshot_to_standard_type('inter', standard_bio=True)
+    convert_fewshot_to_standard_type('intra', standard_bio=True)

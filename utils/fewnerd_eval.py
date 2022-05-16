@@ -100,6 +100,9 @@ class FewNERDMetrics:
         recall = correct_cnt / (label_cnt + 1e-8)
         f1 = 2 * precision * recall / (precision + recall + 1e-8)
         return {
+            "correct_cnt": correct_cnt,
+            "predict_cnt": pred_cnt,
+            "instance_cnt": label_cnt,
             "precision": round(precision * 100, 2),
             "recall": round(recall * 100, 2),
             "micro_f1": round(f1 * 100, 2),
