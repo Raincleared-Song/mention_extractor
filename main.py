@@ -41,9 +41,9 @@ def main_fewshot(args):
         _, _, _, _, _, _, results = train(dataset, models, config)
         models['model'].load_state_dict(model_d)
         models['optimizer'].load_state_dict(optimizer_d)
-        total_correct += results['correct_cnt']
-        total_instance += results['instance_cnt']
-        total_predict += results['predict_cnt']
+        total_correct += results['correct_cnt'] if 'correct_cnt' in results else 0
+        total_instance += results['instance_cnt'] if 'instance_cnt' in results else 0
+        total_predict += results['predict_cnt'] if 'predict_cnt' in results else 0
     print(total_predict, total_instance, total_correct)
     output_file = os.path.join(config.output_path, config.model_path, 'results-fewshot.txt')
     fout = open(output_file, 'w', encoding='utf-8')
