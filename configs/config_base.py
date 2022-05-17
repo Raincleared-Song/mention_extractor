@@ -33,6 +33,7 @@ class ConfigBase:
     # 随机种子
     seed = 66
 
+    max_seq_length_map: dict
     max_seq_length: int
     main_device: str
 

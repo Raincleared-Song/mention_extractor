@@ -30,6 +30,9 @@ def init_args():
     arg_parser.add_argument('--mode', '-m', help='train/test',
                             type=str, choices=['train', 'test', 'both'], required=True)
     arg_parser.add_argument('--checkpoint', '-c', help='path of the checkpoint file', default=None)
+    arg_parser.add_argument('--part', help='fewshot data part', type=str, default='')
+    arg_parser.add_argument('--n_way', help='fewshot number of ways', type=int, default=0)
+    arg_parser.add_argument('--n_shot', help='fewshot number of shots', type=int, default=0)
     args = arg_parser.parse_args()
     if args.mode == 'both':
         args.mode = 'train'
@@ -41,8 +44,16 @@ def init_args():
 
 
 def save_config(args):
-    config_list = [os.path.join('configs', f) for f in os.listdir('configs')]
     cur_config = task_to_config[args.task]
+    if args.task == 'fewshot':
+        assert args.part != '' and args.n_way != 0 and args.n_shot != 0
+        cur_config.part = args.part
+        cur_config.n_way = args.n_way
+        cur_config.n_shot = args.n_shot
+        cur_config.data_path = f'data/episode-data/{args.part}/test_{args.n_way}_{args.n_shot}.jsonl'
+        cur_config.model_path = f'fewnerd-fewshot-mention_bio-bert_crf-{args.part}{args.n_way:02}{args.n_shot:02}'
+        cur_config.max_seq_length = cur_config.max_seq_length_map[(args.n_way, args.n_shot)]
+    config_list = [os.path.join('configs', f) for f in os.listdir('configs')]
     time_str = '-'.join(time.asctime(time.localtime(time.time())).split(' '))
     base_path = os.path.join(cur_config.output_path, cur_config.model_path)
     os.makedirs(base_path, exist_ok=True)

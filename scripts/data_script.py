@@ -175,6 +175,17 @@ def convert_fewshot_to_standard_type(part: str, standard_bio=False):
     file_list = [f for f in os.listdir(file_path) if f.endswith('.jsonl')]
     for f in tqdm(file_list, desc=part):
         reader = jsonlines.open(f'{file_path}/{f}')
+        # instance_count = 0
+        # for item in reader:
+        #     sents, labs = item['query']['word'], item['query']['label']
+        #     assert len(sents) == len(labs)
+        #     for sent, lab in zip(sents, labs):
+        #         assert len(sent) == len(lab)
+        #         last_lab = ''
+        #         for s, la in zip(sent, lab):
+        #             if la != 'O' and la != last_lab:
+        #                 instance_count += 1
+        #             last_lab = la
         fout = open(f'{file_path}/{f[:-6]}{"-bio" if standard_bio else ""}.txt', 'w')
         for item in reader:
             sents = item['support']['word'] + item['query']['word']

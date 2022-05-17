@@ -40,8 +40,8 @@ def train(datasets, models, config: ConfigBase):
         else torch.set_deterministic
 
     train_loss = 0.0
-    best_step_f1, best_steps = 0.0, 0
-    best_epoch_f1, best_epoch = 0.0, 0
+    best_step_f1, best_steps = -1, -1
+    best_epoch_f1, best_epoch = -1, -1
     best_results = {}
     model.zero_grad()
 

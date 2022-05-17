@@ -56,7 +56,7 @@ class ConfigFewshot(ConfigBase):
     adam_epsilon = 1e-8
     weight_decay = 0.0
 
-    num_warmup_steps = 0
+    num_warmup_steps = -1
     lstm_hidden_size = 512
 
     max_step = -1

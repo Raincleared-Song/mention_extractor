@@ -267,6 +267,10 @@ max_step: 60000
 max_step_f1: 55.6
 max_step_pre: 58.59
 max_step_rec: 52.89
+total_correct: 90451
+total_predict: 131735
+total_instance: 146467
+precision: 68.66 recall: 61.76 f1: 65.03
 
 19. fewnerd-mention_bio-bert_crf-inter1001, step-12000
 max_epoch: 4
@@ -277,6 +281,10 @@ max_step: 12000
 max_step_f1: 55.46
 max_step_pre: 56.23
 max_step_rec: 54.7
+total_correct: 44685
+total_predict: 66040
+total_instance: 65398
+precision: 67.66 recall: 68.33 f1: 67.99
 
 20. fewnerd-mention_bio-bert_crf-intra0505, step-110000
 max_epoch: 1
@@ -287,6 +295,10 @@ max_step: 110000
 max_step_f1: 33.3
 max_step_pre: 32.37
 max_step_rec: 34.29
+total_correct: 84187
+total_predict: 131768
+total_instance: 151483
+precision: 63.89 recall: 55.58 f1: 59.44
 
 21. fewnerd-mention_bio-bert_crf-intra1001, epoch-0
 max_epoch: 0
@@ -297,3 +309,7 @@ max_step: 92000
 max_step_f1: 30.87
 max_step_pre: 29.45
 max_step_rec: 32.42
+total_correct: 41389
+total_predict: 63308
+total_instance: 67713
+precision: 65.38 recall: 61.12 f1: 63.18
