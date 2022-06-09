@@ -208,6 +208,49 @@ def convert_fewshot_to_standard_type(part: str, standard_bio=False):
         reader.close()
 
 
+def create_file_indexes(path: str):
+    random.seed(100)
+    split_d = {
+        'train': [], 'valid': [],
+    }
+    results = []
+    sub_folders = sorted([p for p in os.listdir(path) if os.path.isdir(os.path.join(path, p))])
+    for sub in tqdm(sub_folders):
+        sub_path = os.path.join(path, sub)
+        for file in sorted(os.listdir(sub_path)):
+            cnt, lid = 0, 0
+            sub_file_path = os.path.join(sub_path, file)
+            fin = open(sub_file_path, encoding='utf-8')
+            cur_words = []
+            for line in fin.readlines():
+                line = line.strip()
+                if line.startswith("-DOCSTART-") or not line.strip():
+                    if len(cur_words) > 0:
+                        cnt += 1
+                        cur_words = []
+                else:
+                    splits = line.split("\t")
+                    if len(splits) != 2:
+                        assert len(splits) == 1
+                        splits = ['[unused99]'] + splits
+                    assert len(splits) == 2
+                    cur_word = splits[0].strip()
+                    cur_words.append(cur_word)
+                lid += 1
+            if cur_words:
+                cnt += 1
+            fin.close()
+            results.append((sub, file, cnt))
+            rand = random.random()
+            if rand <= 0.9:
+                split_d['train'].append((sub, file))
+            else:
+                split_d['valid'].append((sub, file))
+    save_json(results, os.path.join(path, 'stats.json'))
+    save_json(split_d, os.path.join(path, 'splits.json'))
+    print(len(split_d['train']), len(split_d['valid']))  # 15029 1701
+
+
 if __name__ == '__main__':
     # gen_fewnerd_temp_ner('supervised')
     # gen_fewnerd_entlm_ner('supervised')
@@ -215,5 +258,6 @@ if __name__ == '__main__':
     # convert_to_standard_bio('supervised')
     # convert_fewshot_to_standard_type('inter')
     # convert_fewshot_to_standard_type('intra')
-    convert_fewshot_to_standard_type('inter', standard_bio=True)
-    convert_fewshot_to_standard_type('intra', standard_bio=True)
+    # convert_fewshot_to_standard_type('inter', standard_bio=True)
+    # convert_fewshot_to_standard_type('intra', standard_bio=True)
+    create_file_indexes('../project-tencent/data/processed2_txt')

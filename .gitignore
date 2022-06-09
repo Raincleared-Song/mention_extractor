@@ -2,3 +2,4 @@
 .vscode/
 data/
 checkpoint/
+__pycache__/

@@ -14,14 +14,14 @@ class BertCrf(nn.Module):
         self.bert = BertModel.from_pretrained(config.bert_path)
         self.dropout = nn.Dropout(0.3)
         self.hidden2tag = nn.Linear(in_features=config.lstm_hidden_size
-                                    if config.model_name == 'BERT-BiLSTM-Crf' else 768,
+                                    if config.model_name == 'BERT-BiLSTM-Crf' else config.bert_hidden,
                                     out_features=config.label_num, bias=True)
         self.pad_label_id = -100
         self.pad_logit_id = float('-inf')
         self.crf = CRF(tagset_size=config.label_num, config=config)
 
         if config.model_name == 'BERT-BiLSTM-Crf':
-            self.rnn = DynamicRNN(768, config)
+            self.rnn = DynamicRNN(config.bert_hidden, config)
 
     def forward(self,
                 input_ids=None, attention_mask=None, token_type_ids=None,

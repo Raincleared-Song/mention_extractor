@@ -17,6 +17,7 @@ def test_crf(datasets, model, mode: str, config: ConfigBase, output_path: str = 
     assert mode in ['valid', 'test']
     dataset = datasets[mode]
     eval_loss, eval_step_b = 0.0, 0
+    test_sz, test_batch_sz = len(dataset), config.per_gpu_batch_size[mode]
 
     evaluator = FewNERDMetrics(config)
     crf_pred, results = {}, {}
@@ -33,7 +34,7 @@ def test_crf(datasets, model, mode: str, config: ConfigBase, output_path: str = 
         output_file_name = os.path.join(output_path, f'result-step-{step}.jsonl')
     writer = jsonlines.open(output_file_name, 'w')
 
-    for batch in tqdm(dataset, desc=mode):
+    for step, batch in enumerate(tqdm(dataset, desc=mode)):
         model.eval()
         guids, words, extra_labels = batch['guids'], batch['words'], batch['extra_labels']
         del batch['guids'], batch['words'], batch['extra_labels']
@@ -66,8 +67,13 @@ def test_crf(datasets, model, mode: str, config: ConfigBase, output_path: str = 
                 })
             # handle omitted samples
             evaluator.expand(predict_labels, true_labels)
-
         eval_step_b += 1
+
+        if isinstance(config.data_path, str):
+            # is pretrain
+            next_begin, next_end = (step + 1) % test_sz, (step + 2) % test_sz
+            dataset.dataset.kernel.check_status(next_begin * test_batch_sz, next_end * test_batch_sz)
+
     eval_loss = eval_loss / eval_step_b
     writer.close()
 

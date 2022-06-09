@@ -22,68 +22,10 @@ import copy
 import torch
 import jsonlines
 from tqdm import tqdm
-from io import open
 from typing import List, Type, Tuple
 from configs import ConfigBase
-from torch.utils.data import Dataset
-
-
-def label_convert(label: str, is_begin: bool, config: Type[ConfigBase]) -> str:
-    if config.label_type == 'type' or label in config.negative_labels:
-        res = label if len(label) <= 2 or label[2:] not in ('B-', 'I-') else label[2:]
-    elif config.label_type == 'type_bio':
-        res = ('B-' if is_begin else 'I-') + label if len(label) <= 2 or label[2:] not in ('B-', 'I-') else label
-    elif config.label_type == 'mention':
-        res = 'mention'
-    elif config.label_type == 'mention_bio':
-        res = ('B-' if is_begin else 'I-') + 'mention'
-    else:
-        raise ValueError('invalid label type!')
-    assert res in config.label2id
-    return res
-
-
-class InputExample(object):
-    """A single training/test example for token classification."""
-
-    def __init__(self, guid, words, labels, proc_words):
-        """Constructs a InputExample.
-        Args:
-            guid: Unique id for the example.
-            words: list. The words of the sequence.
-            labels: (Optional) list. The labels for each word of the sequence. This should be
-            specified for train and dev examples, but not for test examples.
-        """
-        self.guid = guid
-        self.words = words
-        self.labels = labels
-        self.proc_words = proc_words
-
-
-class InputFeatures(object):
-    """A single set of features of data."""
-
-    def __init__(self, guid, input_ids, input_mask, segment_ids, label_ids, flags, length, words, extra_labels):
-        self.guid = guid
-        self.input_ids = input_ids
-        self.input_mask = input_mask
-        self.segment_ids = segment_ids
-        self.label_ids = label_ids
-        self.flags = flags
-        self.length = length
-        self.words = words
-        self.extra_labels = extra_labels
-
-
-class InputExampleDataset(Dataset):
-    def __init__(self, data: List[InputExample]):
-        self.data = data
-
-    def __len__(self) -> int:
-        return len(self.data)
-
-    def __getitem__(self, item) -> InputExample:
-        return self.data[item]
+from .fewnerd_datasets import InputExample, InputFeatures, InputExampleDataset, LargeInputExampleDataset, \
+    label_convert, read_examples_from_file
 
 
 class FewNERDBertCrfFormatter:
@@ -98,6 +40,9 @@ class FewNERDBertCrfFormatter:
         """
         if self.task == 'supervised':
             assert mode is not None
+            if isinstance(self.config.data_path, str):
+                # is pretrain
+                return LargeInputExampleDataset(self.config, mode)
             data_dir = self.config.data_path[mode]
             prefix, _ = os.path.splitext(data_dir)
             cache_path = f'{prefix}_{self.config.label_type}_cache.pth'
@@ -168,48 +113,6 @@ class FewNERDBertCrfFormatter:
             "words": words,
             "extra_labels": extra_labels,
         }
-
-
-def read_examples_from_file(data_dir: str, mode: str, config: Type[ConfigBase]) -> List[InputExample]:
-    guid_index = 0
-    examples = []
-    with open(data_dir, encoding="utf-8") as f:
-        words = []
-        labels = []
-        last_label = "O"
-        proc_words = []
-        for line in tqdm(f.readlines(), desc=f'reading {mode}'):
-            line = line.strip()
-            if line.startswith("-DOCSTART-") or not line.strip():
-                if len(words) > 0:
-                    assert len(words) == len(labels)
-                    examples.append(InputExample(guid="{}-{}".format(mode, guid_index),
-                                                 words=words, labels=labels, proc_words=proc_words))
-                    guid_index += 1
-                    words = []
-                    labels = []
-                    last_label = "O"
-                    proc_words = []
-            else:
-                splits = line.split("\t")
-                cur_word = splits[0].strip()
-                cur_proc = config.tokenizer.tokenize(cur_word) if len(cur_word) > 0 else []
-                if len(cur_word) > 0 and len(cur_proc) > 0:
-                    words.append(cur_word)
-                    proc_words.append(cur_proc)
-                    if len(splits) > 1:
-                        cur_label = splits[-1].replace("\n", "")
-                    else:
-                        # Examples could have no label for mode = "test"
-                        cur_label = "O"
-                    cur_conv_label = label_convert(cur_label, cur_label != last_label, config)
-                    labels.append(cur_conv_label)
-                    last_label = cur_label
-        if words:
-            assert len(words) == len(labels)
-            examples.append(InputExample(guid="%s-%d".format(mode, guid_index),
-                                         words=words, labels=labels, proc_words=proc_words))
-    return examples
 
 
 def read_fewshot_examples_from_jsonl(data_dir: str, config: Type[ConfigBase]) -> \

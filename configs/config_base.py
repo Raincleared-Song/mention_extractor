@@ -24,10 +24,13 @@ class ConfigBase:
 
     # bert 路径
     bert_path = 'bert-base-uncased'
+    bert_hidden = 768
     # Dataloader 线程数目
-    reader_num = 32
+    reader_num = 4
     # 全局切词器
     tokenizer = AutoTokenizer.from_pretrained(bert_path, do_lower_case=True)
+    # [unused99] 代表 strip 后为空的词
+    tokenizer.add_special_tokens({"additional_special_tokens": ["[unused99]"]})
     # 使用 gpu 数量
     n_gpu = 1
     # 随机种子

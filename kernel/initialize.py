@@ -4,6 +4,7 @@ import torch
 import random
 import argparse
 import numpy as np
+from utils import CustomDataloader
 from configs import task_to_config
 from models import name_to_model
 from torch.optim import Adam, AdamW
@@ -33,6 +34,7 @@ def init_args():
     arg_parser.add_argument('--part', help='fewshot data part', type=str, default='')
     arg_parser.add_argument('--n_way', help='fewshot number of ways', type=int, default=0)
     arg_parser.add_argument('--n_shot', help='fewshot number of shots', type=int, default=0)
+    arg_parser.add_argument('--device', help='the device used', type=str, default='cuda:0')
     args = arg_parser.parse_args()
     if args.mode == 'both':
         args.mode = 'train'
@@ -53,6 +55,7 @@ def save_config(args):
         cur_config.data_path = f'data/episode-data/{args.part}/test_{args.n_way}_{args.n_shot}.jsonl'
         cur_config.model_path = f'fewnerd-fewshot-mention_bio-bert_crf-{args.part}{args.n_way:02}{args.n_shot:02}'
         cur_config.max_seq_length = cur_config.max_seq_length_map[(args.n_way, args.n_shot)]
+    cur_config.main_device = args.device
     config_list = [os.path.join('configs', f) for f in os.listdir('configs')]
     time_str = '-'.join(time.asctime(time.localtime(time.time())).split(' '))
     base_path = os.path.join(cur_config.output_path, cur_config.model_path)
@@ -106,14 +109,17 @@ def init_dataset(task: str, mode: str = None):
         assert mode is not None
         form = FewNERDBertCrfFormatter(task, config)
         batch_size = config.per_gpu_batch_size[mode] * max(1, config.n_gpu)
-        shuffle = (mode != 'test')
-
+        is_pretrain = isinstance(config.data_path, str)
         dataset = form.read(mode)
-        dataloader = DataLoader(
-            dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=config.reader_num,
-            collate_fn=form.process, drop_last=(mode == 'train'),
-            worker_init_fn=seed_worker, generator=global_loader_generator, pin_memory=True,
-        )
+        if is_pretrain:
+            dataloader = CustomDataloader(dataset=dataset, batch_size=batch_size, drop_last=(mode == 'train'),
+                                          num_workers=config.reader_num, collate_fn=form.process)
+        else:
+            dataloader = DataLoader(
+                dataset=dataset, batch_size=batch_size, shuffle=(mode == 'train'), num_workers=config.reader_num,
+                collate_fn=form.process, drop_last=(mode == 'train'),
+                worker_init_fn=seed_worker, generator=global_loader_generator, pin_memory=True,
+            )
     elif task == 'fewshot':
         form = FewNERDBertCrfFormatter(task, config)
         datasets = form.read()
