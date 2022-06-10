@@ -40,9 +40,14 @@ class CustomDataloader:
             self.thread_queue.append(thr)
             self.thread_ptr += 1
         assert len(self.thread_queue) > 0
-        pop_thr = self.thread_queue[0]
+        pop_thr: CustomThread = self.thread_queue[0]
         assert pop_thr.item == self.ptr
         pop_thr.join()
+        try:
+            assert pop_thr.result != [], 'CustomThread Execution Error!'
+        except AssertionError:
+            from IPython import embed
+            embed()
         self.thread_queue = self.thread_queue[1:]
         self.ptr += 1
         return pop_thr.result

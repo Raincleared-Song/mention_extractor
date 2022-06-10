@@ -221,13 +221,16 @@ def create_file_indexes(path: str):
             cnt, lid = 0, 0
             sub_file_path = os.path.join(sub_path, file)
             fin = open(sub_file_path, encoding='utf-8')
-            cur_words = []
+            cur_words, cur_labels = [], []
             for line in fin.readlines():
                 line = line.strip()
                 if line.startswith("-DOCSTART-") or not line.strip():
                     if len(cur_words) > 0:
+                        assert len(cur_words) == len(cur_labels)
                         cnt += 1
                         cur_words = []
+                        cur_labels = []
+                        proc_words = []
                 else:
                     splits = line.split("\t")
                     if len(splits) != 2:
@@ -235,9 +238,17 @@ def create_file_indexes(path: str):
                         splits = ['[unused99]'] + splits
                     assert len(splits) == 2
                     cur_word = splits[0].strip()
-                    cur_words.append(cur_word)
+                    if len(cur_word) > 0:
+                        cur_words.append(cur_word)
+                        if len(splits) > 1:
+                            cur_label = splits[-1].replace("\n", "")
+                        else:
+                            # Examples could have no label for mode = "test"
+                            cur_label = "O"
+                        cur_labels.append(cur_label)
                 lid += 1
             if cur_words:
+                assert len(cur_words) == len(cur_labels)
                 cnt += 1
             fin.close()
             results.append((sub, file, cnt))

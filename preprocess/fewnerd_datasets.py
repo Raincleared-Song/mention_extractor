@@ -91,7 +91,10 @@ def read_examples_from_file(data_dir: str, prefix: str, config: Type[ConfigBase]
                     splits = ['[unused99]'] + splits
                 cur_word = splits[0].strip()
                 cur_proc = config.tokenizer.tokenize(cur_word) if len(cur_word) > 0 else []
-                if len(cur_word) > 0 and len(cur_proc) > 0:
+                if len(cur_proc) == 0:
+                    cur_proc = ['[unused99]']
+                if len(cur_word) > 0:
+                    assert len(cur_proc) > 0
                     words.append(cur_word)
                     proc_words.append(cur_proc)
                     if len(splits) > 1:
@@ -109,130 +112,100 @@ def read_examples_from_file(data_dir: str, prefix: str, config: Type[ConfigBase]
     return examples
 
 
-class LargeInputExampleKernel:
-    """large dataset for pretraining, singleton"""
-    _singleton = None
-
-    config: Type[ConfigBase]
-    data_path: str
-    file_list: list
-    indexes: list
-    stats: dict
-    total_len: int
-    pool_limit: int
-    preload_count: int
-    cached_samples: list
-    cur_progress: int
-
-    def __new__(cls, config: Type[ConfigBase], mode: str):
-        if cls._singleton is not None:
-            return cls._singleton
-
+class LargeInputExampleDataset(Dataset):
+    """large dataset for pretraining"""
+    def __init__(self, config: Type[ConfigBase], mode: str):
         print('Initializing large dataset ......')
-        cls.config = config
-        assert isinstance(cls.config.data_path, str)
-        cls.data_path = config.data_path
-        files = load_json(os.path.join(cls.data_path, 'splits.json'))[mode]
+        self.config = config
+        assert isinstance(self.config.data_path, str)
+        self.data_path = config.data_path
+        files = load_json(os.path.join(self.data_path, 'splits.json'))[mode]
         files = [(sub, file) for sub, file in files]
         if mode == 'train':
             random.shuffle(files)
-        cls.file_list = files
-        stats = load_json(os.path.join(cls.data_path, 'stats.json'))
+        self.file_list = files
+        stats = load_json(os.path.join(self.data_path, 'stats.json'))
         stats = {(sub, file): cnt for sub, file, cnt in stats}
         # create indexes
-        cls.indexes = [0]
+        self.indexes = [0]
         cur_sum = 0
         for sub, file in files:
             cnt = stats[(sub, file)]
-            # assert cnt > cls.config.per_gpu_batch_size[mode]
+            # assert cnt > self.config.per_gpu_batch_size[mode]
             cur_sum += cnt
-            cls.indexes.append(cur_sum)
-        cls.stats = stats
-        cls.total_len = cur_sum
-        print('loaded file number:', len(cls.file_list))
+            self.indexes.append(cur_sum)
+        self.stats = stats
+        self.total_len = cur_sum
+        print('loaded file number:', len(self.file_list))
         print('loaded sample number:', cur_sum)
 
         # if size larger than 5, remove the earliest one
-        cls.pool_limit = 5
-        cls.preload_count = 3
-        cls.cached_samples = []  # List[fid, examples]
-        cls.cur_progress = 0  # the next fid to load
+        self.pool_limit = 5
+        self.preload_count = 3
+        self.cached_samples = []  # List[fid, examples]
+        self.cur_progress = 0  # the next fid to load
         # preload files
-        for _ in range(cls.preload_count):
-            cls.push_back(to_pop=False)
+        for _ in range(self.preload_count):
+            self.push_back(to_pop=False)
 
-        assert cls._singleton is None
-        cls._singleton = super(LargeInputExampleKernel, cls).__new__(cls)
-        return cls._singleton
-
-    @classmethod
-    def push_back(cls, to_pop=True):
+    def push_back(self, to_pop=True):
         """thread not safe"""
-        fid = cls.cur_progress
-        if fid in [f for f, _ in cls.cached_samples]:
+        fid = self.cur_progress
+        if fid in [f for f, _ in self.cached_samples]:
             return
-        sub, file = cls.file_list[fid]
-        file_path = os.path.join(cls.data_path, sub, file)
-        examples = read_examples_from_file(file_path, f'{sub}+{file}', cls.config)
-        cls.cached_samples.append((fid, examples))
-        assert len(examples) == cls.stats[(sub, file)]
-        cls.cur_progress = (fid + 1) % len(cls.file_list)
-        if to_pop and len(cls.cached_samples) > cls.pool_limit:
-            cls.pop()
+        sub, file = self.file_list[fid]
+        file_path = os.path.join(self.data_path, sub, file)
+        examples = read_examples_from_file(file_path, f'{sub}+{file}', self.config)
+        self.cached_samples.append((fid, examples))
+        if len(examples) != self.stats[(sub, file)]:
+            print('******', sub, file, '******')
+        assert len(examples) == self.stats[(sub, file)]
+        self.cur_progress = (fid + 1) % len(self.file_list)
+        if to_pop and len(self.cached_samples) > self.pool_limit:
+            self.pop()
 
-    @classmethod
-    def pop(cls):
+    def pop(self):
         """thread not safe"""
-        assert len(cls.cached_samples) > 0
-        cls.cached_samples = cls.cached_samples[1:]
+        assert len(self.cached_samples) > 0
+        self.cached_samples = self.cached_samples[1:]
 
-    @classmethod
-    def check_status(cls, next_begin: int, next_end: int, to_push=True):
+    def check_status(self, next_begin: int, next_end: int, to_push=True):
         """thread not safe"""
-        sid, eid = cls.binary_search_fid(next_begin), cls.binary_search_fid(next_end - 1)
-        if sid != eid or next_begin == cls.indexes[sid]:
+        sid, eid = self.binary_search_fid(next_begin), self.binary_search_fid(next_end - 1)
+        if sid != eid or next_begin == self.indexes[sid]:
             if to_push:
-                cls.push_back()
+                self.push_back()
             return True
         return False
 
-    @classmethod
-    def binary_search_fid(cls, did):
+    def binary_search_fid(self, did):
         """thread safe"""
-        assert did < cls.total_len
-        lo, hi = 0, len(cls.indexes)
+        assert did < self.total_len
+        lo, hi = 0, len(self.indexes)
         while lo < hi:
             mi = (lo + hi) // 2
-            if cls.indexes[mi] <= did:
+            if self.indexes[mi] <= did:
                 lo = mi + 1
             else:
                 hi = mi
         return lo - 1
 
-
-class LargeInputExampleDataset(Dataset):
-    """wrapper of LargeInputExampleKernel"""
-    def __init__(self, config: Type[ConfigBase], mode: str):
-        self.kernel = LargeInputExampleKernel(config, mode)
-
     def __len__(self):
-        cls = LargeInputExampleKernel
-        return cls.total_len
+        return self.total_len
 
     def __getitem__(self, item):
         """thread safe"""
-        cls = LargeInputExampleKernel
-        fid = cls.binary_search_fid(item)
+        fid = self.binary_search_fid(item)
         examples = None
-        for i, (f, exp) in enumerate(cls.cached_samples):
+        for i, (f, exp) in enumerate(self.cached_samples):
             if fid == f:
                 examples = exp
                 break
         if examples is None:
-            print('------', item, fid, cls.indexes[:10], [f for f, _ in cls.cached_samples])
-            print('++++++', [cls.stats[(sub, file)] for sub, file in cls.file_list[:10]],
-                  hex(id(cls.cached_samples)), hex(id(cls)))
+            print('------', item, fid, self.indexes[:10], [f for f, _ in self.cached_samples])
+            print('++++++', [self.stats[(sub, file)] for sub, file in self.file_list[:10]],
+                  hex(id(self.cached_samples)), hex(id(self)))
         assert examples is not None
-        accu_count = cls.indexes[fid]
+        accu_count = self.indexes[fid]
         assert item >= accu_count
         return examples[item - accu_count]

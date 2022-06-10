@@ -72,7 +72,7 @@ def test_crf(datasets, model, mode: str, config: ConfigBase, output_path: str = 
         if isinstance(config.data_path, str):
             # is pretrain
             next_begin, next_end = (step + 1) % test_sz, (step + 2) % test_sz
-            dataset.dataset.kernel.check_status(next_begin * test_batch_sz, next_end * test_batch_sz)
+            dataset.dataset.check_status(next_begin * test_batch_sz, next_end * test_batch_sz)
 
     eval_loss = eval_loss / eval_step_b
     writer.close()
