@@ -139,8 +139,8 @@ class LargeInputExampleDataset(Dataset):
         print('loaded file number:', len(self.file_list))
         print('loaded sample number:', cur_sum)
 
-        # if size larger than 5, remove the earliest one
-        self.pool_limit = 5
+        # if size larger than 10, remove the earliest one
+        self.pool_limit = 10
         self.preload_count = 3
         self.cached_samples = []  # List[fid, examples]
         self.cur_progress = 0  # the next fid to load

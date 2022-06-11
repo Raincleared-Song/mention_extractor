@@ -50,6 +50,12 @@ def train(datasets, models, config: ConfigBase):
         print(f'training epoch {epoch} ......')
         epoch_iterator = tqdm(train_dataset, desc="data iteration")
         for step, batch in enumerate(epoch_iterator):
+            if step < global_step:
+                if isinstance(config.data_path, str):
+                    # is pretrain
+                    next_begin, next_end = (step + 1) % train_sz, (step + 2) % train_sz
+                    train_dataset.dataset.check_status(next_begin * train_batch_sz, next_end * train_batch_sz)
+                continue
             model.train()
             del batch['guids'], batch['words'], batch['extra_labels']
             if config.n_gpu > 1:
@@ -85,15 +91,15 @@ def train(datasets, models, config: ConfigBase):
                 global_step += 1
 
                 if config.save_step > 0 and global_step % config.save_step == 0:
-                    results = test(datasets, model, 'valid', config, valid_output_path, step=global_step)
-                    if results['eval_f1'] > best_step_f1:
-                        best_step_f1 = results['eval_f1']
-                        best_steps = global_step
                     if config.save_model:
                         # Save model checkpoint
                         cp_output_dir = os.path.join(model_output_path, f'step-{global_step}.pkl')
                         model_to_save = model.module if hasattr(model, "module") else model
                         save_model(cp_output_dir, model_to_save, config.optimizer, optimizer, epoch, global_step)
+                    results = test(datasets, model, 'valid', config, valid_output_path, step=global_step)
+                    if results['eval_f1'] > best_step_f1:
+                        best_step_f1 = results['eval_f1']
+                        best_steps = global_step
 
             if 0 < config.max_step < global_step:
                 epoch_iterator.close()
@@ -106,14 +112,14 @@ def train(datasets, models, config: ConfigBase):
             break
         # save model for every epoch
         if epoch % config.save_epoch == 0:
-            results = test(datasets, model, 'valid', config, valid_output_path, epoch=epoch)
-            if results['eval_f1'] > best_epoch_f1:
-                best_epoch_f1 = results['eval_f1']
-                best_epoch = epoch
-                best_results = results
             if config.save_model:
                 # Save model checkpoint
                 cp_output_dir = os.path.join(model_output_path, f'epoch-{epoch}.pkl')
                 model_to_save = model.module if hasattr(model, "module") else model
                 save_model(cp_output_dir, model_to_save, config.optimizer, optimizer, epoch, global_step)
+            results = test(datasets, model, 'valid', config, valid_output_path, epoch=epoch)
+            if results['eval_f1'] > best_epoch_f1:
+                best_epoch_f1 = results['eval_f1']
+                best_epoch = epoch
+                best_results = results
     return global_step, train_loss / global_step, best_steps, best_epoch, best_step_f1, best_epoch_f1, best_results
