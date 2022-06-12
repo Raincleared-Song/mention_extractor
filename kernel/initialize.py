@@ -35,6 +35,7 @@ def init_args():
     arg_parser.add_argument('--n_way', help='fewshot number of ways', type=int, default=0)
     arg_parser.add_argument('--n_shot', help='fewshot number of shots', type=int, default=0)
     arg_parser.add_argument('--device', help='the device used', type=str, default='cuda:0')
+    arg_parser.add_argument('--resume', help='if set, skip trained steps', action='store_true')
     args = arg_parser.parse_args()
     if args.mode == 'both':
         args.mode = 'train'
@@ -56,6 +57,7 @@ def save_config(args):
         cur_config.model_path = f'fewnerd-fewshot-mention_bio-bert_crf-{args.part}{args.n_way:02}{args.n_shot:02}'
         cur_config.max_seq_length = cur_config.max_seq_length_map[(args.n_way, args.n_shot)]
     cur_config.main_device = args.device
+    cur_config.skip_trained_steps = args.resume
     config_list = [os.path.join('configs', f) for f in os.listdir('configs')]
     time_str = '-'.join(time.asctime(time.localtime(time.time())).split(' '))
     base_path = os.path.join(cur_config.output_path, cur_config.model_path)

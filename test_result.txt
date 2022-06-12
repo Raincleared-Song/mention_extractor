@@ -313,3 +313,14 @@ total_correct: 41389
 total_predict: 63308
 total_instance: 67713
 precision: 65.38 recall: 61.12 f1: 63.18
+
+pretrain:
+1. fewnerd-mention_bio-bert_crf-pretrain_base
+max_epoch: -1
+max_epoch_f1: 0.0
+max_epoch_pre: 0.0
+max_epoch_rec: 0.0
+max_step: 120000
+max_step_f1: 85.55
+max_step_pre: 85.0
+max_step_rec: 86.11

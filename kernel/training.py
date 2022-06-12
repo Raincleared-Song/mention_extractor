@@ -28,8 +28,8 @@ def train(datasets, models, config: ConfigBase):
 
     model = models['model']
     optimizer = models['optimizer']
-    trained_epoch = models['trained_epoch'] + 1
-    global_step = models['global_step']
+    trained_epoch = models['trained_epoch'] + 1 if config.skip_trained_steps else 0
+    global_step = models['global_step'] if config.skip_trained_steps else 0
     train_batch_sz = config.per_gpu_batch_size['train']
 
     scheduler = None

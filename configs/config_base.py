@@ -50,6 +50,7 @@ class ConfigBase:
 
     max_step: int
     num_epoch: int
+    skip_trained_steps: bool
     max_grad_norm: float
     grad_accu_step: int
     save_step: int

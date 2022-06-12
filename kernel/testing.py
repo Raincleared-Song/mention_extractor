@@ -19,7 +19,7 @@ def test_crf(datasets, model, mode: str, config: ConfigBase, output_path: str = 
     eval_loss, eval_step_b = 0.0, 0
     test_sz, test_batch_sz = len(dataset), config.per_gpu_batch_size[mode]
 
-    evaluator = FewNERDMetrics(config)
+    evaluator = FewNERDMetrics(config.negative_labels)
     crf_pred, results = {}, {}
 
     assert mode == 'test' or output_path is not None and (epoch >= 0 or step >= 0)
