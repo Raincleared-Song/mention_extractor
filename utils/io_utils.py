@@ -18,7 +18,7 @@ def save_json(obj: object, path: str):
     file.close()
 
 
-def save_model(path: str, model, optimizer_name, optimizer, trained_epoch: int, global_step: int):
+def save_model(path: str, model, optimizer_name, optimizer, scheduler, trained_epoch: int, global_step: int):
     if hasattr(model, 'module'):
         model = model.module
     ret = {
@@ -28,6 +28,8 @@ def save_model(path: str, model, optimizer_name, optimizer, trained_epoch: int, 
         'trained_epoch': trained_epoch,
         'global_step': global_step
     }
+    if scheduler is not None:
+        ret['scheduler'] = scheduler.state_dict()
     try:
         torch.save(ret, path)
     except Exception as err:

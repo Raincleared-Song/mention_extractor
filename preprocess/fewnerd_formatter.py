@@ -45,7 +45,16 @@ class FewNERDBertCrfFormatter:
                 return LargeInputExampleDataset(self.config, mode)
             data_dir = self.config.data_path[mode]
             prefix, _ = os.path.splitext(data_dir)
-            cache_path = f'{prefix}_{self.config.label_type}_cache.pth'
+            model_to_cache = {
+                'bert-base-uncased':   'bert',
+                'bert-large-uncased':  'bert',
+                'facebook/bart-base':  'bart',
+                'facebook/bart-large': 'bart',
+                't5-base':             't5',
+                't5-large':            't5',
+            }
+            cache_path = f'{prefix}_{self.config.label_type}_cache_{model_to_cache[self.config.bert_path]}.pth'
+            print(cache_path)
             if os.path.exists(cache_path) and not self.config.overwrite_cache:
                 print('loading examples:', mode, self.config.label_type, '......')
                 self.data = torch.load(cache_path)
@@ -73,13 +82,22 @@ class FewNERDBertCrfFormatter:
             raise NotImplementedError('Invalid Task Name!')
 
     def process(self, batch: List[InputExample]):
+        model_to_tokens = {
+            'bert-base-uncased':   ('[CLS]', '[SEP]'),
+            'bert-large-uncased':  ('[CLS]', '[SEP]'),
+            'facebook/bart-base':  ('<s>', '</s>'),
+            'facebook/bart-large': ('<s>', '</s>'),
+            't5-base':             ('<s>', '</s>'),
+            't5-large':            ('<s>', '</s>'),
+        }
+        cls_token, sep_token = model_to_tokens[self.config.bert_path]
         max_word_len = max(sum(len(word) for word in example.proc_words) for example in batch)
         padding_len = min(self.config.max_seq_length, max_word_len + 2)
         features = convert_examples_to_features(batch, self.config.label2id, padding_len, self.config.tokenizer,
                                                 cls_token_at_end=False,
-                                                cls_token=self.config.tokenizer.cls_token,
+                                                cls_token=cls_token,
                                                 cls_token_segment_id=0,
-                                                sep_token=self.config.tokenizer.sep_token,
+                                                sep_token=sep_token,
                                                 # roberta uses an extra separator b/w pairs of sentences
                                                 sep_token_extra=False,
                                                 pad_on_left=False,

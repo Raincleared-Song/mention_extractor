@@ -28,15 +28,20 @@ def train(datasets, models, config: ConfigBase):
 
     model = models['model']
     optimizer = models['optimizer']
+    scheduler_state = models['scheduler']
     trained_epoch = models['trained_epoch'] + 1 if config.skip_trained_steps else 0
+    cur_pass_step = trained_epoch * (train_sz // config.grad_accu_step)
     global_step = models['global_step'] if config.skip_trained_steps else 0
     train_batch_sz = config.per_gpu_batch_size['train']
+    print('current step:', cur_pass_step, 'global_step:', global_step)
 
     scheduler = None
     if config.num_warmup_steps >= 0:
         scheduler = get_linear_schedule_with_warmup(
             optimizer, num_warmup_steps=config.num_warmup_steps, num_training_steps=total_t
         )
+        if scheduler_state is not None:
+            scheduler.load_state_dict(scheduler_state)
     determine = torch.use_deterministic_algorithms if 'use_deterministic_algorithms' in dir(torch) \
         else torch.set_deterministic
 
@@ -49,12 +54,15 @@ def train(datasets, models, config: ConfigBase):
     for epoch in range(trained_epoch, int(config.num_epoch)):
         print(f'training epoch {epoch} ......')
         epoch_iterator = tqdm(train_dataset, desc="data iteration")
+        if isinstance(config.data_path, str) and config.task == 'supervised':
+            train_dataset.dataset.check_status_current(0, train_batch_sz)
         for step, batch in enumerate(epoch_iterator):
-            if step < global_step:
-                if isinstance(config.data_path, str):
+            if cur_pass_step < global_step:
+                if isinstance(config.data_path, str) and config.task == 'supervised':
                     # is pretrain
                     next_begin, next_end = (step + 1) % train_sz, (step + 2) % train_sz
-                    train_dataset.dataset.check_status(next_begin * train_batch_sz, next_end * train_batch_sz)
+                    train_dataset.dataset.check_status_next(next_begin * train_batch_sz, next_end * train_batch_sz)
+                cur_pass_step += 1
                 continue
             model.train()
             del batch['guids'], batch['words'], batch['extra_labels']
@@ -89,13 +97,15 @@ def train(datasets, models, config: ConfigBase):
                     scheduler.step()
                 model.zero_grad()
                 global_step += 1
+                cur_pass_step += 1
 
                 if config.save_step > 0 and global_step % config.save_step == 0:
                     if config.save_model:
                         # Save model checkpoint
                         cp_output_dir = os.path.join(model_output_path, f'step-{global_step}.pkl')
                         model_to_save = model.module if hasattr(model, "module") else model
-                        save_model(cp_output_dir, model_to_save, config.optimizer, optimizer, epoch, global_step)
+                        save_model(cp_output_dir, model_to_save,
+                                   config.optimizer, optimizer, scheduler, epoch, global_step)
                     results = test(datasets, model, 'valid', config, valid_output_path, step=global_step)
                     if results['eval_f1'] > best_step_f1:
                         best_step_f1 = results['eval_f1']
@@ -104,10 +114,10 @@ def train(datasets, models, config: ConfigBase):
             if 0 < config.max_step < global_step:
                 epoch_iterator.close()
                 break
-            if isinstance(config.data_path, str):
+            if isinstance(config.data_path, str) and config.task == 'supervised':
                 # is pretrain
                 next_begin, next_end = (step + 1) % train_sz, (step + 2) % train_sz
-                train_dataset.dataset.check_status(next_begin * train_batch_sz, next_end * train_batch_sz)
+                train_dataset.dataset.check_status_next(next_begin * train_batch_sz, next_end * train_batch_sz)
         if 0 < config.max_step < global_step:
             break
         # save model for every epoch
@@ -116,7 +126,7 @@ def train(datasets, models, config: ConfigBase):
                 # Save model checkpoint
                 cp_output_dir = os.path.join(model_output_path, f'epoch-{epoch}.pkl')
                 model_to_save = model.module if hasattr(model, "module") else model
-                save_model(cp_output_dir, model_to_save, config.optimizer, optimizer, epoch, global_step)
+                save_model(cp_output_dir, model_to_save, config.optimizer, optimizer, scheduler, epoch, global_step)
             results = test(datasets, model, 'valid', config, valid_output_path, epoch=epoch)
             if results['eval_f1'] > best_epoch_f1:
                 best_epoch_f1 = results['eval_f1']

@@ -169,13 +169,31 @@ class LargeInputExampleDataset(Dataset):
         assert len(self.cached_samples) > 0
         self.cached_samples = self.cached_samples[1:]
 
-    def check_status(self, next_begin: int, next_end: int, to_push=True):
+    def check_status_current(self, cur_begin: int, cur_end: int):
+        """thread not safe"""
+        sid, eid = self.binary_search_fid(cur_begin), self.binary_search_fid(cur_end - 1)
+        fids = [f for f, _ in self.cached_samples]
+        assert len(fids) > 0
+        com_list = []
+        for idx in range(sid, eid + 1):
+            if idx not in fids:
+                print(f'Warning: {idx} not in list!')
+                sub, file = self.file_list[idx]
+                file_path = os.path.join(self.data_path, sub, file)
+                examples = read_examples_from_file(file_path, f'{sub}+{file}', self.config)
+                com_list.append((idx, examples))
+                fids.append(idx)
+        self.cached_samples = com_list + self.cached_samples
+
+    def check_status_next(self, next_begin: int, next_end: int, to_push=True):
         """thread not safe"""
         sid, eid = self.binary_search_fid(next_begin), self.binary_search_fid(next_end - 1)
         if sid != eid or next_begin == self.indexes[sid]:
             if to_push:
                 self.push_back()
+            self.check_status_current(next_begin, next_end)
             return True
+        self.check_status_current(next_begin, next_end)
         return False
 
     def binary_search_fid(self, did):

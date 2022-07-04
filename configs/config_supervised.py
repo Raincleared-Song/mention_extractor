@@ -4,6 +4,8 @@ from .config_base import ConfigBase
 
 class ConfigSupervised(ConfigBase):
     """信息配置类"""
+    task = 'supervised'
+
     # 数据信息
     data_path = {
         'train': 'data/supervised/train.txt',
@@ -11,9 +13,9 @@ class ConfigSupervised(ConfigBase):
         'test': 'data/supervised/test.txt'
     }
     # data_path = {
-    #     'train': 'data/episode-data/intra/train_10_1.txt',
-    #     'valid': 'data/episode-data/intra/dev_10_1.txt',
-    #     'test': 'data/episode-data/intra/test_10_1.txt'
+    #     'train': 'data/episode-data/inter/train_5_5.txt',
+    #     'valid': 'data/episode-data/inter/dev_5_5.txt',
+    #     'test': 'data/episode-data/inter/test_5_5.txt'
     # }
     # data_path = '../project-tencent/data/processed2_txt'
 
@@ -36,15 +38,15 @@ class ConfigSupervised(ConfigBase):
     assert len(id2label) == len(label2id)
 
     per_gpu_batch_size = {
-        'train': 64,
-        'valid': 64,
-        'test': 64,
+        'train': 16,
+        'valid': 16,
+        'test':  16,
     }
 
     # 使用的方法/输出目录名
     output_path = 'checkpoint'
     model_name = 'BERT-Crf'
-    model_path = 'fewnerd-mention_bio-bert_crf-finetune_base'
+    model_path = 'fewnerd-mention_bio-bert_crf-finetune_t5_large'
     assert model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']
 
     # 句子最大长度
@@ -63,10 +65,10 @@ class ConfigSupervised(ConfigBase):
     lstm_hidden_size = 512
 
     max_step = -1
-    num_epoch = 30
+    num_epoch = 10
     skip_trained_steps = False  # 是否跳过已训练轮
     max_grad_norm = 1.0
     grad_accu_step = 1  # 梯度累加
-    save_step = 2000  # 预训练每 20000 步保存一次，微调每 2000 步存一次
+    save_step = 4000  # 预训练每 20000 步保存一次，微调每 2000 步存一次
     save_epoch = 1   # 每 1 轮保存一次
     save_model = True

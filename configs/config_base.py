@@ -4,6 +4,8 @@ from transformers import AutoTokenizer
 
 class ConfigBase:
     """基础信息配置类"""
+    task: str
+
     data_path: Union[dict, str]
 
     label_map: dict
@@ -23,12 +25,12 @@ class ConfigBase:
     model_path: str
 
     # bert 路径
-    bert_path = 'bert-base-uncased'
-    bert_hidden = 768
+    bert_path = 't5-large'
+    bert_hidden = 1024
     # Dataloader 线程数目
     reader_num = 4
     # 全局切词器
-    tokenizer = AutoTokenizer.from_pretrained(bert_path, do_lower_case=True)
+    tokenizer = AutoTokenizer.from_pretrained(bert_path, do_lower_case=True, model_max_length=512)
     # [unused99] 代表 strip 后为空的词
     tokenizer.add_special_tokens({"additional_special_tokens": ["[unused99]"]})
     # 使用 gpu 数量

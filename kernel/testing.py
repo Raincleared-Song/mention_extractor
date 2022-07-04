@@ -34,7 +34,9 @@ def test_crf(datasets, model, mode: str, config: ConfigBase, output_path: str = 
         output_file_name = os.path.join(output_path, f'result-step-{step}.jsonl')
     writer = jsonlines.open(output_file_name, 'w')
 
-    for step, batch in enumerate(tqdm(dataset, desc=mode)):
+    if isinstance(config.data_path, str) and config.task == 'supervised':
+        dataset.dataset.check_status_current(0, test_batch_sz)
+    for bid, batch in enumerate(tqdm(dataset, desc=mode)):
         model.eval()
         guids, words, extra_labels = batch['guids'], batch['words'], batch['extra_labels']
         del batch['guids'], batch['words'], batch['extra_labels']
@@ -69,10 +71,10 @@ def test_crf(datasets, model, mode: str, config: ConfigBase, output_path: str = 
             evaluator.expand(predict_labels, true_labels)
         eval_step_b += 1
 
-        if isinstance(config.data_path, str):
+        if isinstance(config.data_path, str) and config.task == 'supervised':
             # is pretrain
-            next_begin, next_end = (step + 1) % test_sz, (step + 2) % test_sz
-            dataset.dataset.check_status(next_begin * test_batch_sz, next_end * test_batch_sz)
+            next_begin, next_end = (bid + 1) % test_sz, (bid + 2) % test_sz
+            dataset.dataset.check_status_next(next_begin * test_batch_sz, next_end * test_batch_sz)
 
     eval_loss = eval_loss / eval_step_b
     writer.close()

@@ -4,6 +4,7 @@ from .config_base import ConfigBase
 
 class ConfigFewshot(ConfigBase):
     """信息配置类"""
+    task = 'fewshot'
 
     part = 'intra'
     n_way = 10
@@ -38,7 +39,7 @@ class ConfigFewshot(ConfigBase):
     # 使用的方法/输出目录名
     output_path = 'checkpoint'
     model_name = 'BERT-Crf'
-    model_path = f'fewnerd-fewshot-mention_bio-bert_crf-{part}{n_way:02}{n_shot:02}'
+    model_path = 'fewnerd-fewshot-mention_bio-bert_crf-{0}{1:02}{2:02}_finetune_200'
     assert model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']
 
     max_seq_length_map = {
@@ -61,6 +62,7 @@ class ConfigFewshot(ConfigBase):
 
     max_step = -1
     num_epoch = 10
+    skip_trained_steps = False  # 是否跳过已训练轮
     max_grad_norm = 1.0
     grad_accu_step = 1  # 梯度累加
     save_step = -1  # 每 2000 步保存一次

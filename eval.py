@@ -2,7 +2,6 @@ import os
 import argparse
 import jsonlines
 from tqdm import tqdm
-from utils import FewNERDMetrics
 
 
 def find_max_f1_txt(idx_file_list: list, valid_path: str, metric='f1'):
@@ -29,6 +28,7 @@ def find_max_f1_txt(idx_file_list: list, valid_path: str, metric='f1'):
 
 
 def find_max_f1_jsonl(idx_file_list: list, valid_path: str, metric='f1'):
+    from utils import FewNERDMetrics
     assert metric in ['f1', 'precision', 'recall']
     if metric == 'f1':
         metric = 'micro_f1'
@@ -97,10 +97,12 @@ def main():
     print('max_step_pre:', max_step_pre)
     print('max_step_rec:', max_step_rec)
     if args.remove:
-        os.system(f'mv checkpoint/{args.task}/model/epoch-{max_epoch}.pkl checkpoint/{args.task}/')
-        os.system(f'mv checkpoint/{args.task}/model/epoch-{epoch_files[-1][0]}.pkl checkpoint/{args.task}/')
-        os.system(f'mv checkpoint/{args.task}/model/step-{max_step}.pkl checkpoint/{args.task}/')
-        os.system(f'mv checkpoint/{args.task}/model/step-{step_files[-1][0]}.pkl checkpoint/{args.task}/')
+        if max_epoch != -1:
+            os.system(f'mv checkpoint/{args.task}/model/epoch-{max_epoch}.pkl checkpoint/{args.task}/')
+            os.system(f'mv checkpoint/{args.task}/model/epoch-{epoch_files[-1][0]}.pkl checkpoint/{args.task}/')
+        if max_step != -1:
+            os.system(f'mv checkpoint/{args.task}/model/step-{max_step}.pkl checkpoint/{args.task}/')
+            os.system(f'mv checkpoint/{args.task}/model/step-{step_files[-1][0]}.pkl checkpoint/{args.task}/')
         os.system(f'rm -rf checkpoint/{args.task}/model/*')
         os.system(f'mv checkpoint/{args.task}/*.pkl checkpoint/{args.task}/model/')
 

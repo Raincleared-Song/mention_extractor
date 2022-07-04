@@ -73,7 +73,7 @@ micro_f1 = 0.8441831752458313
 precision = 0.8262345862869258
 recall = 0.8629288980598241
 
-4.1 fewnerd-mention_bio-bert_crf-sche, epoch-1.pkl
+*** 4.1 fewnerd-mention_bio-bert_crf-sche, epoch-1.pkl
 setting: Bert-Crf + bio + warmup 0
 max_epoch: 1
 max_epoch_f1: 84.74
@@ -87,6 +87,62 @@ test result:
 micro_f1 = 84.66
 precision = 82.87
 recall = 86.54
+
+4.2 fewnerd-mention_bio-bert_crf-finetune_large, epoch-6.pkl
+max_epoch: 6
+max_epoch_f1: 84.68
+max_epoch_pre: 83.54
+max_epoch_rec: 85.85
+max_step: 72000
+max_step_f1: 84.52
+max_step_pre: 83.58
+max_step_rec: 85.48
+test result:
+pre 83.24 rec 85.65 f1 84.43
+
+4.3 fewnerd-mention_bio-bert_crf-finetune_bart_large, step-16000.pkl
+max_epoch: 0
+max_epoch_f1: 79.74
+max_epoch_pre: 79.27
+max_epoch_rec: 80.22
+max_step: 16000
+max_step_f1: 84.69
+max_step_pre: 83.38
+max_step_rec: 86.04
+pre 83.14 rec 86.02 f1 84.56
+
+*** 4.4 fewnerd-mention_bio-bert_crf-finetune_t5_large, step-16000.pkl
+max_epoch: 3
+max_epoch_f1: 86.41
+max_epoch_pre: 84.68
+max_epoch_rec: 88.21
+max_step: 16000
+max_step_f1: 86.42
+max_step_pre: 84.36
+max_step_rec: 88.57
+pre 84.20 rec 88.53 f1 86.31
+
+4.5 fewnerd-mention_bio-bert_crf-finetune_bart_base, epoch-5.pkl
+max_epoch: 5
+max_epoch_f1: 85.41
+max_epoch_pre: 83.43
+max_epoch_rec: 87.48
+max_step: 56000
+max_step_f1: 85.27
+max_step_pre: 83.63
+max_step_rec: 86.97
+pre 83.16 rec 87.23 f1 85.15
+
+4.6 fewnerd-mention_bio-bert_crf-finetune_t5_base, epoch-3.pkl
+max_epoch: 3
+max_epoch_f1: 86.05
+max_epoch_pre: 84.08
+max_epoch_rec: 88.1
+max_step: 44000
+max_step_f1: 86.01
+max_step_pre: 84.41
+max_step_rec: 87.68
+pre 83.77 rec 87.91 f1 85.79
 
 5. fewnerd-mention-bert_bilstm_crf, step-16000.pkl
 setting: Bert-BiLSTM-Crf + no bio
@@ -313,14 +369,3 @@ total_correct: 41389
 total_predict: 63308
 total_instance: 67713
 precision: 65.38 recall: 61.12 f1: 63.18
-
-pretrain:
-1. fewnerd-mention_bio-bert_crf-pretrain_base
-max_epoch: -1
-max_epoch_f1: 0.0
-max_epoch_pre: 0.0
-max_epoch_rec: 0.0
-max_step: 120000
-max_step_f1: 85.55
-max_step_pre: 85.0
-max_step_rec: 86.11

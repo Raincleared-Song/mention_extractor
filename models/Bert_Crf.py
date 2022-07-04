@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from configs import ConfigBase
-from transformers import BertModel
+from transformers import AutoModel
 from utils import ParallelCollector
 from .crf_base import CRF, DynamicRNN
 from torch.nn.utils.rnn import pad_sequence
@@ -11,7 +11,7 @@ class BertCrf(nn.Module):
     def __init__(self, config: ConfigBase):
         super(BertCrf, self).__init__()
         self.config = config
-        self.bert = BertModel.from_pretrained(config.bert_path)
+        self.bert = AutoModel.from_pretrained(config.bert_path)
         self.dropout = nn.Dropout(0.3)
         self.hidden2tag = nn.Linear(in_features=config.lstm_hidden_size
                                     if config.model_name == 'BERT-BiLSTM-Crf' else config.bert_hidden,
@@ -28,14 +28,29 @@ class BertCrf(nn.Module):
                 position_ids=None, head_mask=None, inputs_embeds=None,
                 lengths=None, labels=None, flags=None, rank=None):
 
-        prediction = self.bert(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-        )[0]
+        if 'bert' in self.config.bert_path:
+            prediction = self.bert(
+                input_ids,
+                attention_mask=attention_mask,
+                token_type_ids=token_type_ids,
+                position_ids=position_ids,
+                head_mask=head_mask,
+                inputs_embeds=inputs_embeds,
+            )[0]
+        elif 't5' in self.config.bert_path:
+            prediction = self.bert.encoder(
+                input_ids,
+                attention_mask=attention_mask,
+                head_mask=head_mask,
+                inputs_embeds=inputs_embeds,
+            )[0]
+        else:
+            prediction = self.bert(
+                input_ids,
+                attention_mask=attention_mask,
+                head_mask=head_mask,
+                inputs_embeds=inputs_embeds,
+            )[0]
 
         prediction = self.dropout(prediction)  # where to put dropout?
         if self.config.model_name == 'BERT-BiLSTM-Crf':

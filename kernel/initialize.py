@@ -54,7 +54,7 @@ def save_config(args):
         cur_config.n_way = args.n_way
         cur_config.n_shot = args.n_shot
         cur_config.data_path = f'data/episode-data/{args.part}/test_{args.n_way}_{args.n_shot}.jsonl'
-        cur_config.model_path = f'fewnerd-fewshot-mention_bio-bert_crf-{args.part}{args.n_way:02}{args.n_shot:02}'
+        cur_config.model_path = cur_config.model_path.format(args.part, args.n_way, args.n_shot)
         cur_config.max_seq_length = cur_config.max_seq_length_map[(args.n_way, args.n_shot)]
     cur_config.main_device = args.device
     cur_config.skip_trained_steps = args.resume
@@ -111,7 +111,7 @@ def init_dataset(task: str, mode: str = None):
         assert mode is not None
         form = FewNERDBertCrfFormatter(task, config)
         batch_size = config.per_gpu_batch_size[mode] * max(1, config.n_gpu)
-        is_pretrain = isinstance(config.data_path, str)
+        is_pretrain = isinstance(config.data_path, str) and config.task == 'supervised'
         dataset = form.read(mode)
         if is_pretrain:
             dataloader = CustomDataloader(dataset=dataset, batch_size=batch_size, drop_last=(mode == 'train'),
@@ -167,6 +167,7 @@ def init_model(args):
     config = task_to_config[args.task]
     model = name_to_model[config.model_name](config)
     trained_epoch, global_step = -1, 0
+    scheduler = None
     if 'cuda' in config.main_device:
         torch.cuda.set_device(config.main_device)
         torch.cuda.empty_cache()
@@ -196,10 +197,13 @@ def init_model(args):
                 optimizer.load_state_dict(params['optimizer'])
             if 'global_step' in params:
                 global_step = params['global_step']
+        if 'scheduler' in params:
+            scheduler = params['scheduler']
 
     return {
         'model': model,
         'optimizer': optimizer,
         'trained_epoch': trained_epoch,
-        'global_step': global_step
+        'global_step': global_step,
+        'scheduler': scheduler,
     }

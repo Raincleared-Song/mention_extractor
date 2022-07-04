@@ -2,14 +2,14 @@ import torch
 import torch.nn as nn
 from configs import ConfigBase
 from utils import ParallelCollector
-from transformers import BertForTokenClassification
+from transformers import AutoModelForTokenClassification
 
 
 class BertTokenClassification(nn.Module):
     def __init__(self, config: ConfigBase):
         super(BertTokenClassification, self).__init__()
         self.config = config
-        self.bert = BertForTokenClassification.from_pretrained(config.bert_path, num_labels=config.label_num)
+        self.bert = AutoModelForTokenClassification.from_pretrained(config.bert_path, num_labels=config.label_num)
         self.pad_label_id = -100
 
     def forward(self,
@@ -17,16 +17,31 @@ class BertTokenClassification(nn.Module):
                 position_ids=None, head_mask=None, inputs_embeds=None,
                 lengths=None, labels=None, flags=None, rank=None):
 
-        loss, prediction = self.bert(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-            labels=labels,
-            return_dict=False,
-        )
+        if 'bert' in self.config.bert_path:
+            loss, prediction = self.bert(
+                input_ids,
+                attention_mask=attention_mask,
+                token_type_ids=token_type_ids,
+                position_ids=position_ids,
+                head_mask=head_mask,
+                inputs_embeds=inputs_embeds,
+                labels=labels,
+                return_dict=False,
+            )
+        elif 't5' in self.config.bert_path:
+            prediction = self.bert.encoder(
+                input_ids,
+                attention_mask=attention_mask,
+                head_mask=head_mask,
+                inputs_embeds=inputs_embeds,
+            )[0]
+        else:
+            prediction = self.bert(
+                input_ids,
+                attention_mask=attention_mask,
+                head_mask=head_mask,
+                inputs_embeds=inputs_embeds,
+            )[0]
 
         _, prediction = torch.max(prediction, -1)
 
