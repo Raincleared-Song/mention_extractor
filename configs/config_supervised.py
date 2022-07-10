@@ -7,17 +7,17 @@ class ConfigSupervised(ConfigBase):
     task = 'supervised'
 
     # 数据信息
-    data_path = {
-        'train': 'data/supervised/train.txt',
-        'valid': 'data/supervised/dev.txt',
-        'test': 'data/supervised/test.txt'
-    }
+    # data_path = {
+    #     'train': 'data/supervised/train.txt',
+    #     'valid': 'data/supervised/dev.txt',
+    #     'test': 'data/supervised/test.txt'
+    # }
     # data_path = {
     #     'train': 'data/episode-data/inter/train_5_5.txt',
     #     'valid': 'data/episode-data/inter/dev_5_5.txt',
     #     'test': 'data/episode-data/inter/test_5_5.txt'
     # }
-    # data_path = '../project-tencent/data/processed2_txt'
+    data_path = '../project-tencent/data/processed2_txt'
 
     label_map = {
         'type': 'data/labels.json',
@@ -38,15 +38,15 @@ class ConfigSupervised(ConfigBase):
     assert len(id2label) == len(label2id)
 
     per_gpu_batch_size = {
-        'train': 16,
-        'valid': 16,
-        'test':  16,
+        'train': 128,
+        'valid': 128,
+        'test':  128,
     }
 
     # 使用的方法/输出目录名
     output_path = 'checkpoint'
     model_name = 'BERT-Crf'
-    model_path = 'fewnerd-mention_bio-bert_crf-finetune_t5_large'
+    model_path = 'fewnerd-mention_bio-bert_crf-pretrain_base_sf_reinit'
     assert model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']
 
     # 句子最大长度
@@ -69,6 +69,9 @@ class ConfigSupervised(ConfigBase):
     skip_trained_steps = False  # 是否跳过已训练轮
     max_grad_norm = 1.0
     grad_accu_step = 1  # 梯度累加
-    save_step = 4000  # 预训练每 20000 步保存一次，微调每 2000 步存一次
+    save_step = 20000  # 预训练每 20000 步保存一次，微调每 2000 步存一次
     save_epoch = 1   # 每 1 轮保存一次
     save_model = True
+
+    self_training = True  # self-training
+    re_initialize = True  # use re-initialize

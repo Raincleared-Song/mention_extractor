@@ -31,6 +31,7 @@ def init_args():
     arg_parser.add_argument('--mode', '-m', help='train/test',
                             type=str, choices=['train', 'test', 'both'], required=True)
     arg_parser.add_argument('--checkpoint', '-c', help='path of the checkpoint file', default=None)
+    arg_parser.add_argument('--teacher_checkpoint', '-tc', help='path of the teacher model', default=None)
     arg_parser.add_argument('--part', help='fewshot data part', type=str, default='')
     arg_parser.add_argument('--n_way', help='fewshot number of ways', type=int, default=0)
     arg_parser.add_argument('--n_shot', help='fewshot number of shots', type=int, default=0)
@@ -199,6 +200,24 @@ def init_model(args):
                 global_step = params['global_step']
         if 'scheduler' in params:
             scheduler = params['scheduler']
+    teacher_model = None
+    if config.self_training:
+        if args.teacher_checkpoint is None:
+            if args.mode != 'test':
+                raise RuntimeError('Self-training needs a teacher model!')
+        else:
+            teacher_model = name_to_model[config.model_name](config)
+            if 'cuda' in config.main_device:
+                teacher_model = teacher_model.to(config.main_device)
+            params = torch.load(args.teacher_checkpoint,
+                                map_location={f'cuda:{k}': config.main_device for k in range(8)})
+            teacher_model.load_state_dict(params['model'])
+            print('Loaded teacher model from:', args.teacher_checkpoint, '......')
+            if not config.re_initialize:
+                model.load_state_dict(teacher_model.state_dict())
+                print('Initialize the student through the weights of teacher!')
+            else:
+                print('Re-initialize the student!')
 
     return {
         'model': model,
@@ -206,4 +225,5 @@ def init_model(args):
         'trained_epoch': trained_epoch,
         'global_step': global_step,
         'scheduler': scheduler,
+        'teacher': teacher_model,
     }

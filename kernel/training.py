@@ -2,7 +2,7 @@ import os
 import torch
 from .testing import test
 from configs import ConfigBase
-from utils import save_model
+from utils import save_model, ParallelCollector
 from tqdm import tqdm
 from transformers import get_linear_schedule_with_warmup
 
@@ -34,6 +34,11 @@ def train(datasets, models, config: ConfigBase):
     global_step = models['global_step'] if config.skip_trained_steps else 0
     train_batch_sz = config.per_gpu_batch_size['train']
     print('current step:', cur_pass_step, 'global_step:', global_step)
+
+    teacher_model = models['teacher']
+    if config.self_training:
+        assert teacher_model is not None
+        teacher_model.eval()
 
     scheduler = None
     if config.num_warmup_steps >= 0:
@@ -73,6 +78,20 @@ def train(datasets, models, config: ConfigBase):
                 if isinstance(value, torch.Tensor):
                     batch[key] = value.to(config.main_device, non_blocking=True)
 
+            if config.self_training:
+                # change to soft labels
+                ori_labels = batch['labels']
+                pad_mask = ori_labels == -100
+                with torch.no_grad():
+                    _ = teacher_model(**batch)
+                predict_labels = []
+                for item in ParallelCollector.predict_container:
+                    predict_labels += item
+                predict_labels = torch.LongTensor(predict_labels)
+                predict_labels[pad_mask] = -100
+                assert predict_labels.shape == ori_labels.shape
+                batch['labels'] = predict_labels.to(config.main_device, non_blocking=True)
+
             if config.model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']:
                 loss = model(**batch)
             else:
@@ -110,6 +129,11 @@ def train(datasets, models, config: ConfigBase):
                     if results['eval_f1'] > best_step_f1:
                         best_step_f1 = results['eval_f1']
                         best_steps = global_step
+                    # update weights of the teacher model
+                    if config.self_training:
+                        print('Update the weights of the teacher model!')
+                        teacher_model.load_state_dict(model.state_dict())
+                        teacher_model.eval()
 
             if 0 < config.max_step < global_step:
                 epoch_iterator.close()
@@ -128,6 +152,11 @@ def train(datasets, models, config: ConfigBase):
                 model_to_save = model.module if hasattr(model, "module") else model
                 save_model(cp_output_dir, model_to_save, config.optimizer, optimizer, scheduler, epoch, global_step)
             results = test(datasets, model, 'valid', config, valid_output_path, epoch=epoch)
+            # update weights of the teacher model
+            if config.self_training:
+                print('Update the weights of the teacher model!')
+                teacher_model.load_state_dict(model.state_dict())
+                teacher_model.eval()
             if results['eval_f1'] > best_epoch_f1:
                 best_epoch_f1 = results['eval_f1']
                 best_epoch = epoch

@@ -85,6 +85,7 @@ class BertCrf(nn.Module):
             cur_rank = 0
         ParallelCollector.label_container[cur_rank] = res_labels
         ParallelCollector.true_container[cur_rank] = true_labels
+        ParallelCollector.predict_container[cur_rank] = prediction.cpu().tolist()
 
         return loss.unsqueeze(0)
 

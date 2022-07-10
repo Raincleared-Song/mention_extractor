@@ -25,8 +25,8 @@ class ConfigBase:
     model_path: str
 
     # bert 路径
-    bert_path = 't5-large'
-    bert_hidden = 1024
+    bert_path = 'bert-base-uncased'
+    bert_hidden = 768
     # Dataloader 线程数目
     reader_num = 4
     # 全局切词器
@@ -58,3 +58,6 @@ class ConfigBase:
     save_step: int
     save_epoch: int
     save_model: bool
+
+    self_training: bool
+    re_initialize: bool
