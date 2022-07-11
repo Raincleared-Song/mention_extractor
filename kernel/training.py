@@ -29,7 +29,7 @@ def train(datasets, models, config: ConfigBase):
     model = models['model']
     optimizer = models['optimizer']
     scheduler_state = models['scheduler']
-    trained_epoch = models['trained_epoch'] + 1 if config.skip_trained_steps else 0
+    trained_epoch = models['trained_epoch'] if config.skip_trained_steps else 0
     cur_pass_step = trained_epoch * (train_sz // config.grad_accu_step)
     global_step = models['global_step'] if config.skip_trained_steps else 0
     train_batch_sz = config.per_gpu_batch_size['train']
@@ -55,6 +55,7 @@ def train(datasets, models, config: ConfigBase):
     best_epoch_f1, best_epoch = -1, -1
     best_results = {}
     model.zero_grad()
+    past_max_length = 0
 
     for epoch in range(trained_epoch, int(config.num_epoch)):
         print(f'training epoch {epoch} ......')
@@ -66,9 +67,17 @@ def train(datasets, models, config: ConfigBase):
                 if isinstance(config.data_path, str) and config.task == 'supervised':
                     # is pretrain
                     next_begin, next_end = (step + 1) % train_sz, (step + 2) % train_sz
-                    train_dataset.dataset.check_status_next(next_begin * train_batch_sz, next_end * train_batch_sz)
+                    train_dataset.dataset.check_status_next(
+                        next_begin * train_batch_sz, next_end * train_batch_sz, skip=True)
+                    if cur_pass_step == global_step - 1:
+                        train_dataset.clear_pool()
+                        train_dataset.dataset.renew_skip_examples(next_begin * train_batch_sz)
                 cur_pass_step += 1
                 continue
+            if batch == {}:
+                from IPython import embed
+                embed()
+                exit()
             model.train()
             del batch['guids'], batch['words'], batch['extra_labels']
             if config.n_gpu > 1:
@@ -93,7 +102,13 @@ def train(datasets, models, config: ConfigBase):
                 batch['labels'] = predict_labels.to(config.main_device, non_blocking=True)
 
             if config.model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']:
-                loss = model(**batch)
+                try:
+                    loss = model(**batch)
+                except RuntimeError as err:
+                    print(err)
+                    from IPython import embed
+                    embed()
+                    raise err
             else:
                 raise NotImplementedError()
 
@@ -106,6 +121,8 @@ def train(datasets, models, config: ConfigBase):
             loss.backward()
             determine(True)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
+            past_max_length = max(past_max_length, batch['input_ids'].shape[1])
 
             train_loss += loss.item()
             if (step + 1) % config.grad_accu_step == 0:

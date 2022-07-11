@@ -82,6 +82,9 @@ class FewNERDBertCrfFormatter:
             raise NotImplementedError('Invalid Task Name!')
 
     def process(self, batch: List[InputExample]):
+        if isinstance(self.config.data_path, str) and self.config.task == 'supervised':
+            if all(example.guid == 'SKIP' for example in batch):
+                return {}
         model_to_tokens = {
             'bert-base-uncased':   ('[CLS]', '[SEP]'),
             'bert-large-uncased':  ('[CLS]', '[SEP]'),

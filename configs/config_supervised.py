@@ -50,7 +50,7 @@ class ConfigSupervised(ConfigBase):
     assert model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']
 
     # 句子最大长度
-    max_seq_length = 128
+    max_seq_length = 128  # ALERT!!! 120 for t5-large, 128 for bert-base
 
     # 训练设备
     main_device = 'cuda:0'
@@ -66,7 +66,7 @@ class ConfigSupervised(ConfigBase):
 
     max_step = -1
     num_epoch = 10
-    skip_trained_steps = False  # 是否跳过已训练轮
+    skip_trained_steps = True  # 是否跳过已训练轮
     max_grad_norm = 1.0
     grad_accu_step = 1  # 梯度累加
     save_step = 20000  # 预训练每 20000 步保存一次，微调每 2000 步存一次

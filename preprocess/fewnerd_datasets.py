@@ -139,8 +139,8 @@ class LargeInputExampleDataset(Dataset):
         print('loaded file number:', len(self.file_list))
         print('loaded sample number:', cur_sum)
 
-        # if size larger than 10, remove the earliest one
-        self.pool_limit = 10
+        # if size larger than 20, remove the earliest one
+        self.pool_limit = 20
         self.preload_count = 3
         self.cached_samples = []  # List[fid, examples]
         self.cur_progress = 0  # the next fid to load
@@ -148,14 +148,18 @@ class LargeInputExampleDataset(Dataset):
         for _ in range(self.preload_count):
             self.push_back(to_pop=False)
 
-    def push_back(self, to_pop=True):
+    def push_back(self, to_pop=True, skip=False):
         """thread not safe"""
         fid = self.cur_progress
         if fid in [f for f, _ in self.cached_samples]:
             return
         sub, file = self.file_list[fid]
-        file_path = os.path.join(self.data_path, sub, file)
-        examples = read_examples_from_file(file_path, f'{sub}+{file}', self.config)
+        if skip:
+            examples = [InputExample(guid='SKIP', words=[], labels=[], proc_words=[])
+                        for _ in range(self.stats[(sub, file)])]
+        else:
+            file_path = os.path.join(self.data_path, sub, file)
+            examples = read_examples_from_file(file_path, f'{sub}+{file}', self.config)
         self.cached_samples.append((fid, examples))
         if len(examples) != self.stats[(sub, file)]:
             print('******', sub, file, '******')
@@ -169,7 +173,7 @@ class LargeInputExampleDataset(Dataset):
         assert len(self.cached_samples) > 0
         self.cached_samples = self.cached_samples[1:]
 
-    def check_status_current(self, cur_begin: int, cur_end: int):
+    def check_status_current(self, cur_begin: int, cur_end: int, skip=False):
         """thread not safe"""
         sid, eid = self.binary_search_fid(cur_begin), self.binary_search_fid(cur_end - 1)
         fids = [f for f, _ in self.cached_samples]
@@ -180,20 +184,41 @@ class LargeInputExampleDataset(Dataset):
                 print(f'Warning: {idx} not in list!')
                 sub, file = self.file_list[idx]
                 file_path = os.path.join(self.data_path, sub, file)
-                examples = read_examples_from_file(file_path, f'{sub}+{file}', self.config)
+                if skip:
+                    examples = [InputExample(guid='SKIP', words=[], labels=[], proc_words=[])
+                                for _ in range(self.stats[(sub, file)])]
+                else:
+                    examples = read_examples_from_file(file_path, f'{sub}+{file}', self.config)
+                if len(examples) != self.stats[(sub, file)]:
+                    print('******', sub, file, '******')
+                assert len(examples) == self.stats[(sub, file)]
                 com_list.append((idx, examples))
                 fids.append(idx)
         self.cached_samples = com_list + self.cached_samples
 
-    def check_status_next(self, next_begin: int, next_end: int, to_push=True):
+    def renew_skip_examples(self, next_begin: int):
+        sid = self.binary_search_fid(next_begin)
+        for idx, (fid, examples) in enumerate(self.cached_samples):
+            if fid >= sid and any(example.guid == 'SKIP' for example in examples):
+                # renew this skipped example
+                print(f'Warning: {fid} is skipped!')
+                sub, file = self.file_list[fid]
+                file_path = os.path.join(self.data_path, sub, file)
+                new_examples = read_examples_from_file(file_path, f'{sub}+{file}', self.config)
+                if len(new_examples) != self.stats[(sub, file)]:
+                    print('******', sub, file, '******')
+                assert len(new_examples) == self.stats[(sub, file)]
+                self.cached_samples[idx] = (fid, new_examples)
+
+    def check_status_next(self, next_begin: int, next_end: int, to_push=True, skip=False):
         """thread not safe"""
         sid, eid = self.binary_search_fid(next_begin), self.binary_search_fid(next_end - 1)
         if sid != eid or next_begin == self.indexes[sid]:
             if to_push:
-                self.push_back()
-            self.check_status_current(next_begin, next_end)
+                self.push_back(skip=skip)
+            self.check_status_current(next_begin, next_end, skip=skip)
             return True
-        self.check_status_current(next_begin, next_end)
+        self.check_status_current(next_begin, next_end, skip=skip)
         return False
 
     def binary_search_fid(self, did):

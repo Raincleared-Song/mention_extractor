@@ -47,7 +47,13 @@ def test_crf(datasets, model, mode: str, config: ConfigBase, output_path: str = 
             batch['rank'] = torch.LongTensor(list(range(config.n_gpu)))
 
         with torch.no_grad():
-            tmp_eval_loss = model(**batch)
+            try:
+                tmp_eval_loss = model(**batch)
+            except RuntimeError as err:
+                print(err)
+                from IPython import embed
+                embed()
+                raise err
 
             predict_labels, true_labels = [], []
             for item in ParallelCollector.label_container:

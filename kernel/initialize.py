@@ -188,6 +188,7 @@ def init_model(args):
             raise RuntimeError('Test mode need a trained model!')
     else:
         params = torch.load(args.checkpoint, map_location={f'cuda:{k}': config.main_device for k in range(8)})
+        print('Loaded student model from:', args.checkpoint, '......')
         if hasattr(model, 'module'):
             model.module.load_state_dict(params['model'])
         else:
@@ -213,7 +214,8 @@ def init_model(args):
                                 map_location={f'cuda:{k}': config.main_device for k in range(8)})
             teacher_model.load_state_dict(params['model'])
             print('Loaded teacher model from:', args.teacher_checkpoint, '......')
-            if not config.re_initialize:
+            if not config.re_initialize and args.checkpoint is None:
+                # only when the checkpoint is None
                 model.load_state_dict(teacher_model.state_dict())
                 print('Initialize the student through the weights of teacher!')
             else:

@@ -28,6 +28,10 @@ class CustomDataloader:
     def __iter__(self):
         return self
 
+    def clear_pool(self):
+        self.thread_ptr -= len(self.thread_queue)
+        self.thread_queue.clear()
+
     def __next__(self):
         if self.ptr == self.length:
             assert self.ptr == self.thread_ptr == self.length
