@@ -218,6 +218,8 @@ def init_model(args):
                 # only when the checkpoint is None
                 model.load_state_dict(teacher_model.state_dict())
                 print('Initialize the student through the weights of teacher!')
+            elif args.checkpoint is not None:
+                print('Initialize the student with the checkpoint!')
             else:
                 print('Re-initialize the student!')
 

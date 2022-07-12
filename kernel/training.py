@@ -57,6 +57,8 @@ def train(datasets, models, config: ConfigBase):
     model.zero_grad()
     past_max_length = 0
 
+    # test(datasets, model, 'valid', config, valid_output_path, step=global_step)
+
     for epoch in range(trained_epoch, int(config.num_epoch)):
         print(f'training epoch {epoch} ......')
         epoch_iterator = tqdm(train_dataset, desc="data iteration")

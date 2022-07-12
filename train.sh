@@ -14,7 +14,7 @@ python main.py -t fewshot -m train -c checkpoint/fewnerd-mention_bio-bert_crf-in
 
 python main.py -t supervised -m train -tc checkpoint/fewnerd-mention_bio-bert_crf-pretrain_base/model/step-160000-a100.pkl --device cuda:0
 python main.py -t supervised -m train --device cuda:7 -c checkpoint/fewnerd-mention_bio-bert_crf-pretrain_t5_large/model/step-60000.pkl --resume
-python main.py -t supervised -m train -tc checkpoint/fewnerd-mention_bio-bert_crf-pretrain_base_sf_noinit/model/step-40000.pkl --device cuda:5 \
-  -c checkpoint/fewnerd-mention_bio-bert_crf-pretrain_base_sf_noinit/model/step-40000.pkl --resume
-python main.py -t supervised -m train -tc checkpoint/fewnerd-mention_bio-bert_crf-pretrain_base_sf_reinit/model/step-40000.pkl --device cuda:6 \
-  -c checkpoint/fewnerd-mention_bio-bert_crf-pretrain_base_sf_reinit/model/step-40000.pkl --resume
+python main.py -t supervised -m train -tc checkpoint/fewnerd-mention_bio-bert_crf-pretrain_base_sf_noinit/model/step-60000.pkl --device cuda:5 \
+  -c checkpoint/fewnerd-mention_bio-bert_crf-pretrain_base_sf_noinit/model/step-60000.pkl --resume
+python main.py -t supervised -m train -tc checkpoint/fewnerd-mention_bio-bert_crf-pretrain_base_sf_reinit/model/step-60000.pkl --device cuda:6 \
+  -c checkpoint/fewnerd-mention_bio-bert_crf-pretrain_base_sf_reinit/model/step-60000.pkl --resume

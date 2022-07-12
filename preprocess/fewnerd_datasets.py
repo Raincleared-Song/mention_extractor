@@ -148,6 +148,15 @@ class LargeInputExampleDataset(Dataset):
         for _ in range(self.preload_count):
             self.push_back(to_pop=False)
 
+    def load_example(self, fid: int):
+        sub, file = self.file_list[fid]
+        file_path = os.path.join(self.data_path, sub, file)
+        examples = read_examples_from_file(file_path, f'{sub}+{file}', self.config)
+        if len(examples) != self.stats[(sub, file)]:
+            print('******', sub, file, '******')
+        assert len(examples) == self.stats[(sub, file)]
+        return examples
+
     def push_back(self, to_pop=True, skip=False):
         """thread not safe"""
         fid = self.cur_progress
@@ -158,12 +167,8 @@ class LargeInputExampleDataset(Dataset):
             examples = [InputExample(guid='SKIP', words=[], labels=[], proc_words=[])
                         for _ in range(self.stats[(sub, file)])]
         else:
-            file_path = os.path.join(self.data_path, sub, file)
-            examples = read_examples_from_file(file_path, f'{sub}+{file}', self.config)
+            examples = self.load_example(fid)
         self.cached_samples.append((fid, examples))
-        if len(examples) != self.stats[(sub, file)]:
-            print('******', sub, file, '******')
-        assert len(examples) == self.stats[(sub, file)]
         self.cur_progress = (fid + 1) % len(self.file_list)
         if to_pop and len(self.cached_samples) > self.pool_limit:
             self.pop()
@@ -175,23 +180,20 @@ class LargeInputExampleDataset(Dataset):
 
     def check_status_current(self, cur_begin: int, cur_end: int, skip=False):
         """thread not safe"""
-        sid, eid = self.binary_search_fid(cur_begin), self.binary_search_fid(cur_end - 1)
+        sid, eid = self.binary_search_fid(cur_begin), \
+            min(self.binary_search_fid(cur_end - 1) + self.pool_limit // 2, len(self.file_list))
         fids = [f for f, _ in self.cached_samples]
         assert len(fids) > 0
         com_list = []
-        for idx in range(sid, eid + 1):
+        for idx in range(sid, eid):
             if idx not in fids:
-                print(f'Warning: {idx} not in list!')
+                # print(f'Warning: {idx} not in list!')
                 sub, file = self.file_list[idx]
-                file_path = os.path.join(self.data_path, sub, file)
                 if skip:
                     examples = [InputExample(guid='SKIP', words=[], labels=[], proc_words=[])
                                 for _ in range(self.stats[(sub, file)])]
                 else:
-                    examples = read_examples_from_file(file_path, f'{sub}+{file}', self.config)
-                if len(examples) != self.stats[(sub, file)]:
-                    print('******', sub, file, '******')
-                assert len(examples) == self.stats[(sub, file)]
+                    examples = self.load_example(idx)
                 com_list.append((idx, examples))
                 fids.append(idx)
         self.cached_samples = com_list + self.cached_samples
@@ -202,12 +204,7 @@ class LargeInputExampleDataset(Dataset):
             if fid >= sid and any(example.guid == 'SKIP' for example in examples):
                 # renew this skipped example
                 print(f'Warning: {fid} is skipped!')
-                sub, file = self.file_list[fid]
-                file_path = os.path.join(self.data_path, sub, file)
-                new_examples = read_examples_from_file(file_path, f'{sub}+{file}', self.config)
-                if len(new_examples) != self.stats[(sub, file)]:
-                    print('******', sub, file, '******')
-                assert len(new_examples) == self.stats[(sub, file)]
+                new_examples = self.load_example(fid)
                 self.cached_samples[idx] = (fid, new_examples)
 
     def check_status_next(self, next_begin: int, next_end: int, to_push=True, skip=False):
