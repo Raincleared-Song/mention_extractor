@@ -29,9 +29,14 @@ def train(datasets, models, config: ConfigBase):
     model = models['model']
     optimizer = models['optimizer']
     scheduler_state = models['scheduler']
-    trained_epoch = models['trained_epoch'] if config.skip_trained_steps else 0
-    cur_pass_step = trained_epoch * (train_sz // config.grad_accu_step)
     global_step = models['global_step'] if config.skip_trained_steps else 0
+    if not config.skip_trained_steps:
+        trained_epoch = 0
+    elif global_step % train_sz == 0:
+        trained_epoch = models['trained_epoch'] + 1
+    else:
+        trained_epoch = models['trained_epoch']
+    cur_pass_step = trained_epoch * (train_sz // config.grad_accu_step)
     train_batch_sz = config.per_gpu_batch_size['train']
     print('current step:', cur_pass_step, 'global_step:', global_step)
 
@@ -69,11 +74,11 @@ def train(datasets, models, config: ConfigBase):
                 if isinstance(config.data_path, str) and config.task == 'supervised':
                     # is pretrain
                     next_begin, next_end = (step + 1) % train_sz, (step + 2) % train_sz
-                    train_dataset.dataset.check_status_next(
+                    train_dataset.dataset.check_status_current(
                         next_begin * train_batch_sz, next_end * train_batch_sz, skip=True)
                     if cur_pass_step == global_step - 1:
                         train_dataset.clear_pool()
-                        train_dataset.dataset.renew_skip_examples(next_begin * train_batch_sz)
+                        train_dataset.dataset.renew_skip_examples()
                 cur_pass_step += 1
                 continue
             if batch == {}:
@@ -160,7 +165,7 @@ def train(datasets, models, config: ConfigBase):
             if isinstance(config.data_path, str) and config.task == 'supervised':
                 # is pretrain
                 next_begin, next_end = (step + 1) % train_sz, (step + 2) % train_sz
-                train_dataset.dataset.check_status_next(next_begin * train_batch_sz, next_end * train_batch_sz)
+                train_dataset.dataset.check_status_current(next_begin * train_batch_sz, next_end * train_batch_sz)
         if 0 < config.max_step < global_step:
             break
         # save model for every epoch

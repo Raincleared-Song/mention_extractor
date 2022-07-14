@@ -139,8 +139,8 @@ class LargeInputExampleDataset(Dataset):
         print('loaded file number:', len(self.file_list))
         print('loaded sample number:', cur_sum)
 
-        # if size larger than 20, remove the earliest one
-        self.pool_limit = 20
+        # if size larger than 10, remove the useless samples
+        self.pool_limit = 10
         self.preload_count = 3
         self.cached_samples = []  # List[fid, examples]
         self.cur_progress = 0  # the next fid to load
@@ -181,10 +181,13 @@ class LargeInputExampleDataset(Dataset):
     def check_status_current(self, cur_begin: int, cur_end: int, skip=False):
         """thread not safe"""
         sid, eid = self.binary_search_fid(cur_begin), \
-            min(self.binary_search_fid(cur_end - 1) + self.pool_limit // 2, len(self.file_list))
-        fids = [f for f, _ in self.cached_samples]
-        assert len(fids) > 0
+            min(self.binary_search_fid(cur_end - 1) + self.pool_limit, len(self.file_list))
         com_list = []
+        for idx, samples in self.cached_samples:
+            if sid <= idx < eid:
+                com_list.append((idx, samples))
+        fids = [f for f, _ in com_list]
+        # assert len(fids) > 0
         for idx in range(sid, eid):
             if idx not in fids:
                 # print(f'Warning: {idx} not in list!')
@@ -196,19 +199,18 @@ class LargeInputExampleDataset(Dataset):
                     examples = self.load_example(idx)
                 com_list.append((idx, examples))
                 fids.append(idx)
-        self.cached_samples = com_list + self.cached_samples
+        self.cached_samples = com_list
 
-    def renew_skip_examples(self, next_begin: int):
-        sid = self.binary_search_fid(next_begin)
+    def renew_skip_examples(self):
         for idx, (fid, examples) in enumerate(self.cached_samples):
-            if fid >= sid and any(example.guid == 'SKIP' for example in examples):
+            if any(example.guid == 'SKIP' for example in examples):
                 # renew this skipped example
                 print(f'Warning: {fid} is skipped!')
                 new_examples = self.load_example(fid)
                 self.cached_samples[idx] = (fid, new_examples)
 
-    def check_status_next(self, next_begin: int, next_end: int, to_push=True, skip=False):
-        """thread not safe"""
+    def check_status_next(self, next_begin: int, next_end: int, to_push=False, skip=False):
+        """thread not safe, depreciated"""
         sid, eid = self.binary_search_fid(next_begin), self.binary_search_fid(next_end - 1)
         if sid != eid or next_begin == self.indexes[sid]:
             if to_push:

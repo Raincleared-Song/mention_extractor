@@ -50,7 +50,7 @@ class ConfigSupervised(ConfigBase):
     assert model_name in ['BERT-Crf', 'BERT-BiLSTM-Crf', 'Bert-Token-Classification']
 
     # 句子最大长度
-    max_seq_length = 128  # ALERT!!! 120 for t5-large, 128 for bert-base
+    max_seq_length = 128  # ALERT!!! 112 for t5-large, 128 for bert-base
 
     # 训练设备
     main_device = 'cuda:0'
